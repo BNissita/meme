@@ -88,15 +88,56 @@ const analyzeResume = async (text) => {
         }
       ],
       "certifications": ["List of certifications"],
-      "summary": "A professional 3-sentence summary of the candidate's profile based on the resume",
-      "strengths": ["Top 3 professional strengths of this candidate"],
-      "weaknesses": ["Top 3 improvement areas or missing elements in the profile"]
-    }
 
+"summary": "A professional 3-sentence summary of the candidate's profile based on the resume",
+
+"strengths": [
+  "Top 3 professional strengths of this candidate"
+],
+
+"weaknesses": [
+  "Top 3 improvement areas or missing elements in the profile"
+],
+
+"atsScore": 0,
+
+"interviewReadiness": 0,
+
+"aiSummary": "Recruiter style evaluation of the candidate in 3-5 sentences"
+    }
+Calculate:
+
+atsScore:
+- Based on formatting
+- Skills
+- Projects
+- Experience
+- Education
+- Resume completeness
+
+Return score between 0 and 100.
+
+interviewReadiness:
+- Based on technical skills
+- Projects
+- Experience
+- Communication indicators
+- Overall employability
+
+Return score between 0 and 100.
+
+aiSummary:
+Write a recruiter-style verdict explaining:
+- Candidate strengths
+- Missing skills
+- Hiring potential
+- Areas for improvement
+
+Keep it professional and concise.
     Resume Text:
     ${text}
   `;
-
+  
   try {
     const resultText = await callGroq(prompt);
     return parseJSONResponse(resultText, getMockResumeAnalysis(text));
@@ -105,6 +146,35 @@ const analyzeResume = async (text) => {
     return getMockResumeAnalysis(text);
   }
 };
+
+const generateResumeInsights =
+async (resume) => {
+
+const prompt = `
+You are an expert recruiter.
+
+Analyze this resume.
+
+Return JSON only.
+
+{
+ "atsScore": 0,
+ "interviewReadiness": 0,
+ "summary": "",
+ "strengths": [],
+ "weaknesses": []
+}
+
+Resume:
+${JSON.stringify(resume)}
+`;
+
+const result =
+await callGroq(prompt);
+
+return parseJSONResponse(result);
+};
+
 /**
  * 2. Analyze Job Description Text
  */
@@ -767,5 +837,6 @@ module.exports = {
   analyzeATS,
   generateInterviewQuestions,
   evaluateAnswer,
-  generateFinalReport
+  generateFinalReport,
+  generateResumeInsights
 };
