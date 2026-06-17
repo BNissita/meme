@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 
+
 // Import routes
 const authRoutes = require('./routes/auth');
 const resumeRoutes = require('./routes/resume');
@@ -10,6 +11,7 @@ const jdRoutes = require('./routes/jd');
 const matchRoutes = require('./routes/match');
 const interviewRoutes = require('./routes/interview');
 const dashboardRoutes = require('./routes/dashboard');
+const communityRoutes = require("./routes/communityRoutes");
 
 // Initialize app
 const app = express();
@@ -21,6 +23,7 @@ connectDB();
 app.use(cors()); // Allow all cross-origins for seamless hackathon integrations
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use("/api/community", communityRoutes);
 app.get('/test-gemini', async (req, res) => {
   try {
     const { GoogleGenerativeAI } = require('@google/generative-ai');

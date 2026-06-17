@@ -1,13 +1,29 @@
 import React, { useContext, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { Menu, X, Brain, User, LogOut, LayoutDashboard, FileText, Briefcase, Zap } from 'lucide-react';
+import {
+  Menu,
+  X,
+  Brain,
+  User,
+  LogOut,
+  LayoutDashboard,
+  FileText,
+  Briefcase,
+  Zap,
+  Sun,
+  Moon,
+  Users
+} from 'lucide-react';
+
+import { useTheme } from '../context/ThemeContext';
 
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { darkMode, setDarkMode } = useTheme();
 
   const handleLogout = () => {
     logout();
@@ -58,9 +74,30 @@ const Navbar = () => {
                   <Brain className="h-4 w-4" />
                   Mock Interview
                 </Link>
+                <Link to="/community" className={linkClass('/community')}>
+                  <Users className="h-4 w-4" />
+                  Community
+                </Link>
                 
                 {/* Profile and Logout */}
                 <div className="flex items-center gap-2 pl-4 border-l border-slate-700 ml-2">
+                  <button
+                    onClick={() => setDarkMode(!darkMode)}
+                    className="
+                      p-2 rounded-full
+                      text-slate-300
+                      hover:text-white
+                      hover:bg-slate-800/40
+                      transition-all duration-300
+                    "
+                    title="Toggle Theme"
+                  >
+                    {darkMode ? (
+                      <Sun className="h-4 w-4 text-yellow-400" />
+                    ) : (
+                      <Moon className="h-4 w-4 text-cyan-400" />
+                    )}
+                  </button>
                   <Link to="/profile" className={`p-2 rounded-full text-slate-300 hover:text-white hover:bg-slate-800/40 ${isActive('/profile') ? 'text-cyan-400' : ''}`} title="Profile">
                     <User className="h-4 w-4" />
                   </Link>
@@ -101,6 +138,7 @@ const Navbar = () => {
               <Link to="/jd" onClick={() => setIsOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800/40">Job Description</Link>
               <Link to="/match" onClick={() => setIsOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800/40">Match Engine</Link>
               <Link to="/interview" onClick={() => setIsOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800/40">Mock Interview</Link>
+              <Link to="/community" onClick={() => setIsOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800/40">Community</Link>
               <Link to="/profile" onClick={() => setIsOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800/40">Profile</Link>
               <button onClick={handleLogout} className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-rose-400 hover:bg-rose-500/10">Logout</button>
             </>
