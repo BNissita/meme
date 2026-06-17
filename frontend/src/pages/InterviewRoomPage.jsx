@@ -44,6 +44,9 @@ const InterviewRoomPage = () => {
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [listening, setListening] = useState(false);
 
+  const speechTimeoutRef = useRef(null);
+  const lastSpokenQuestionIdRef = useRef(null);
+
   const recognitionRef = useRef(null);
   const [micEnabled, setMicEnabled] = useState(false);
 
@@ -51,6 +54,8 @@ const InterviewRoomPage = () => {
   const streamRef = useRef(null);
   const synthRef = useRef(window.speechSynthesis);
 
+  const listeningRef = useRef(false);
+  const finalTranscriptRef = useRef("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -67,8 +72,20 @@ const InterviewRoomPage = () => {
       if (synthRef.current) {
         synthRef.current.cancel();
       }
+
+      if (speechTimeoutRef.current) {
+        clearTimeout(speechTimeoutRef.current);
+      }
     };
   }, []);
+
+  useEffect(() => {
+    setAnswer('');
+  }, [currentQuestion?._id]);
+
+  useEffect(() => {
+    listeningRef.current = listening;
+  }, [listening]);
 
   useEffect(() => {
     console.log("Interview State:", interview);
@@ -76,24 +93,33 @@ const InterviewRoomPage = () => {
     console.log("Loading:", loading);
   }, [interview, currentQuestion, loading]);
 
+  const lastQuestionRef = useRef("");
   // Sync active question and speak it
   useEffect(() => {
     if (interview && interview.questions) {
       const idx = interview.currentQuestionIndex;
       if (idx < interview.questions.length) {
         const q = interview.questions[idx];
+
+        // Prevent re-triggering speech for the same question ID if it was already spoken
+        // This handles React StrictMode and unrelated state updates
         setCurrentQuestion(q);
-        setAnswer('');
-        setEvaluation(null);
-        setSeconds(0);
-        startTimer();
-        speakQuestion(q.question);
+
+        if (lastSpokenQuestionIdRef.current !== q._id) {
+          setAnswer('');
+          setEvaluation(null);
+          setSeconds(0);
+          startTimer();
+
+          lastQuestionRef.current = q.question;
+          speakQuestion(q.question, q._id);
+        }
       } else {
         // All questions answered, auto-finalize
         finalizeInterview();
       }
     }
-  }, [interview]);
+  }, [interview?.currentQuestionIndex, interview?.questions]);
   const enableMedia = async () => {
     console.log("enableMedia called");
 
@@ -145,28 +171,25 @@ const InterviewRoomPage = () => {
     const recognition = new SpeechRecognition();
 
     recognition.continuous = true;
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.maxAlternatives = 1;
     recognition.lang = "en-US";
 
     recognition.onresult = (event) => {
-      let finalTranscript = "";
+      let finalText = "";
+      let interimText = "";
 
-      for (
-        let i = event.resultIndex;
-        i < event.results.length;
-        i++
-      ) {
-        const result = event.results[i];
+      for (let i = 0; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
 
-        if (result.isFinal) {
-          finalTranscript += result[0].transcript + " ";
+        if (event.results[i].isFinal) {
+          finalText += transcript + " ";
+        } else {
+          interimText += transcript;
         }
       }
 
-      if (finalTranscript) {
-        setAnswer((prev) => prev + finalTranscript);
-      }
+      setAnswer((finalText + interimText).trim());
     };
 
     recognition.onerror = (event) => {
@@ -204,9 +227,13 @@ const InterviewRoomPage = () => {
 
     recognition.onend = () => {
       console.log("Recognition ended");
-      setListening(false);
-      if (listening) {
-        recognition.start();
+
+      if (listeningRef.current) {
+        try {
+          recognition.start();
+        } catch (e) {
+          console.log("Restart skipped");
+        }
       }
     };
     recognitionRef.current = recognition;
@@ -223,6 +250,8 @@ const InterviewRoomPage = () => {
 
       if (res.data.success) {
         setInterview(res.data.interview);
+        setAnswer('');
+
       }
     } catch (err) {
       console.log("API ERROR:", err.response);
@@ -277,12 +306,20 @@ const InterviewRoomPage = () => {
   };
 
   // Speak question via Web Speech API
-  const speakQuestion = (text) => {
+  const speakQuestion = (text, questionId) => {
     if (!ttsEnabled || !synthRef.current) return;
+
+    // Clear any pending speech timeout to prevent race conditions
+    if (speechTimeoutRef.current) {
+      clearTimeout(speechTimeoutRef.current);
+    }
 
     synthRef.current.cancel();
 
-    setTimeout(() => {
+    // Mark as spoken immediately to prevent duplicate triggers while waiting for timeout
+    lastSpokenQuestionIdRef.current = questionId;
+
+    speechTimeoutRef.current = setTimeout(() => {
       const utterance = new SpeechSynthesisUtterance(text);
 
       const voices = synthRef.current.getVoices();
@@ -300,6 +337,13 @@ const InterviewRoomPage = () => {
 
       utterance.onend = () => {
         setQuestionSpeaking(false);
+        speechTimeoutRef.current = null;
+      };
+
+      utterance.onerror = (event) => {
+        console.error("Speech Error:", event);
+        setQuestionSpeaking(false);
+        speechTimeoutRef.current = null;
       };
 
       synthRef.current.speak(utterance);
@@ -308,26 +352,30 @@ const InterviewRoomPage = () => {
 
   const toggleTts = () => {
     if (ttsEnabled) {
+      if (speechTimeoutRef.current) {
+        clearTimeout(speechTimeoutRef.current);
+      }
       synthRef.current.cancel();
       setTtsEnabled(false);
     } else {
       setTtsEnabled(true);
       if (currentQuestion) {
-        speakQuestion(currentQuestion.question);
+        speakQuestion(currentQuestion.question, currentQuestion._id);
       }
     }
   };
   const startListening = () => {
-    console.log("Mic Enabled:", micEnabled);
-    console.log("Recognition Object:", recognitionRef.current);
+    setAnswer("");
+    // finalTranscriptRef.current = "";
+
     if (!micEnabled) {
       alert("Microphone not enabled");
       return;
     }
 
     try {
-      console.log("Starting recognition...");
       synthRef.current.cancel();
+      setListening(true);
       recognitionRef.current.start();
     } catch (err) {
       console.log("START ERROR:", err);
@@ -335,8 +383,11 @@ const InterviewRoomPage = () => {
   };
 
   const stopListening = () => {
+    setListening(false);
+
     if (recognitionRef.current) {
       recognitionRef.current.stop();
+      recognitionRef.current.abort();
     }
   };
 
@@ -364,12 +415,28 @@ const InterviewRoomPage = () => {
 
   // Move to next question
   const handleNext = () => {
+    console.log(
+      "Before refresh:",
+      interview.currentQuestionIndex,
+      interview.questions[interview.currentQuestionIndex]?.question
+    );
+    // console.log(res.data.interview.questions);
     if (synthRef.current) synthRef.current.cancel();
     // Re-fetch active interview from backend (it has incremented currentQuestionIndex)
     api.get('/interview/active')
       .then(res => {
         if (res.data.success) {
+
+          setAnswer('');
+          setEvaluation(null);
+
           setInterview(res.data.interview);
+
+          console.log(
+            "After refresh:",
+            res.data.interview.currentQuestionIndex,
+            res.data.interview.questions[res.data.interview.currentQuestionIndex]?.question
+          );
         }
       })
       .catch(err => {
@@ -430,27 +497,68 @@ const InterviewRoomPage = () => {
     : 0;
 
   return (
-    <div className="flex h-screen bg-[#020617] text-slate-200 overflow-hidden font-sans">
-      <div className="absolute top-1/4 left-1/4 glow-dot-cyan w-[300px] h-[300px] opacity-20"></div>
+    <div className="flex fixed inset-0 top-16 bg-[#020617] text-slate-200 overflow-hidden font-sans">
+      <div className="absolute top-1/4 left-1/4 glow-dot-cyan w-[300px] h-[300px] opacity-20 pointer-events-none"></div>
 
       {/* LEFT: Recruiter Panel */}
       <div className="w-[400px] flex flex-col border-r border-slate-800/50 bg-[#070b13]/50 backdrop-blur-xl z-20">
-        <div className="p-6 flex-1 flex flex-col gap-6">
-          <div className="flex items-center gap-3 mb-2">
+        <div className="p-6 h-full flex flex-col gap-6">
+
+          <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
               <Brain className="w-6 h-6 text-cyan-400" />
             </div>
+
             <div>
-              <h1 className="text-sm font-bold text-white tracking-tight">AI Executive Recruiter</h1>
-              <p className="text-[10px] text-cyan-500 font-bold uppercase tracking-widest">Live Neural Session</p>
+              <h1 className="text-sm font-bold text-white tracking-tight">
+                AI Executive Recruiter
+              </h1>
+
+              <p className="text-[10px] text-cyan-500 font-bold uppercase tracking-widest">
+                Live Neural Session
+              </p>
             </div>
           </div>
 
-          <div className="flex-1 relative rounded-[32px] overflow-hidden border border-slate-800 bg-black group shadow-2xl">
-            <RecruiterAvatar />
+          <div className="flex-1 flex flex-col gap-4 min-h-0">
 
-            {/* User Camera Overlay */}
-            <div className="absolute bottom-6 right-6 w-36 aspect-video rounded-2xl overflow-hidden border border-slate-700/50 bg-slate-900 shadow-2xl transition-all duration-500 group-hover:scale-105 group-hover:border-cyan-500/50">
+            {/* Interviewer */}
+            <div className="flex-1 rounded-[32px] border border-slate-800 overflow-hidden bg-black relative">
+
+              <div className="absolute top-3 left-3 z-10 text-[10px] text-cyan-400 font-bold uppercase tracking-wider">
+                Interviewer
+              </div>
+
+              <div className="w-full h-full flex items-center justify-center">
+                <RecruiterAvatar speaking={questionSpeaking} />
+              </div>
+
+              {questionSpeaking && (
+                <div className="absolute top-3 right-3 flex gap-1">
+                  {[1, 2, 3].map((i) => (
+                    <motion.div
+                      key={i}
+                      animate={{ height: [6, 16, 6] }}
+                      transition={{
+                        repeat: Infinity,
+                        duration: 0.6,
+                        delay: i * 0.1
+                      }}
+                      className="w-1 bg-cyan-400 rounded-full"
+                    />
+                  ))}
+                </div>
+              )}
+
+            </div>
+
+            {/* Candidate */}
+            <div className="flex-1 rounded-[32px] border border-slate-800 overflow-hidden bg-black relative">
+
+              <div className="absolute top-3 left-3 z-10 text-[10px] text-green-400 font-bold uppercase tracking-wider">
+                Candidate
+              </div>
+
               <video
                 ref={videoRef}
                 autoPlay
@@ -458,52 +566,49 @@ const InterviewRoomPage = () => {
                 playsInline
                 className="w-full h-full object-cover"
               />
-              {!cameraEnabled && (
-                <div className="absolute inset-0 flex items-center justify-center bg-slate-950">
-                  <Loader2 className="w-5 h-5 text-slate-700 animate-spin" />
-                </div>
-              )}
+
             </div>
 
-            {/* Speaking Indicator Overlay */}
-            {questionSpeaking && (
-              <div className="absolute top-6 right-6 flex gap-1.5 bg-black/40 backdrop-blur-md px-3 py-2 rounded-full border border-white/10">
-                {[1, 2, 3].map((i) => (
-                  <motion.div
-                    key={i}
-                    animate={{ height: [8, 16, 8] }}
-                    transition={{ repeat: Infinity, duration: 0.6, delay: i * 0.1 }}
-                    className="w-1 bg-cyan-400 rounded-full"
-                  />
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Audio Viz Panel */}
-          <div className="h-28 glass-panel rounded-3xl flex flex-col items-center justify-center px-8 relative overflow-hidden border-slate-800/50">
+          <div className="h-28 glass-panel rounded-3xl flex flex-col items-center justify-center px-8 relative overflow-hidden border-slate-800/50 shrink-0">
             <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/5 to-transparent pointer-events-none" />
-            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-4 z-10">Audio Frequency</p>
+
+            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] mb-4 z-10">
+              Audio Frequency
+            </p>
+
             <div className="flex items-end gap-1.5 h-10 z-10">
               {[...Array(24)].map((_, i) => (
                 <motion.div
                   key={i}
                   animate={{
-                    height: listening ? [4, Math.random() * 32 + 8, 4] : questionSpeaking ? [4, Math.random() * 16 + 4, 4] : [4, 6, 4],
-                    opacity: (listening || questionSpeaking) ? 1 : 0.2
+                    height: listening
+                      ? [4, Math.random() * 32 + 8, 4]
+                      : questionSpeaking
+                        ? [4, Math.random() * 16 + 4, 4]
+                        : [4, 6, 4],
+                    opacity: listening || questionSpeaking ? 1 : 0.2
                   }}
-                  transition={{ repeat: Infinity, duration: 0.4, delay: i * 0.02 }}
-                  className={`w-1 rounded-full ${listening ? 'bg-green-400' : 'bg-cyan-400'}`}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 0.4,
+                    delay: i * 0.02
+                  }}
+                  className={`w-1 rounded-full ${listening ? "bg-green-400" : "bg-cyan-400"
+                    }`}
                 />
               ))}
             </div>
           </div>
+
         </div>
       </div>
 
       {/* CENTER: Conversation Transcript */}
-      <div className="flex-1 flex flex-col bg-[#020617] relative z-10">
-        <header className="h-20 border-b border-slate-800/50 flex items-center justify-between px-10 bg-[#070b13]/30 backdrop-blur-md">
+      <div className="flex-1 flex flex-col bg-[#020617] relative z-10 overflow-hidden">
+        <header className="h-20 border-b border-slate-800/50 flex items-center justify-between px-10 bg-[#070b13]/30 backdrop-blur-md shrink-0">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-3">
               <div className={`w-2.5 h-2.5 rounded-full shadow-[0_0_10px] ${listening ? 'bg-green-500 shadow-green-500/50 animate-pulse' : 'bg-slate-700 shadow-transparent'}`} />
@@ -534,7 +639,7 @@ const InterviewRoomPage = () => {
         <main className="flex-1 overflow-y-auto p-10 space-y-12 scrollbar-hide">
           <AnimatePresence>
             {/* History */}
-            {interview.questions.slice(0, interview.currentQuestionIndex).map((q, i) => (
+            {interview.answers?.map((item, i) => (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -545,26 +650,33 @@ const InterviewRoomPage = () => {
                   <div className="w-10 h-10 rounded-2xl bg-slate-800/50 flex-shrink-0 flex items-center justify-center border border-slate-700/50 shadow-xl">
                     <Brain className="w-5 h-5 text-slate-500" />
                   </div>
+
                   <div className="space-y-2">
-                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">AI Recruiter</p>
+                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1">
+                      AI Recruiter
+                    </p>
+
                     <div className="bg-slate-900/40 border border-slate-800/50 p-5 rounded-[24px] rounded-tl-none text-sm leading-relaxed text-slate-300 shadow-lg">
-                      {q.question}
+                      {item.question}
                     </div>
                   </div>
                 </div>
-                {q.answer && (
-                  <div className="flex gap-5 max-w-3xl ml-auto flex-row-reverse">
-                    <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 flex-shrink-0 flex items-center justify-center border border-cyan-500/20 shadow-xl">
-                      <User className="w-5 h-5 text-cyan-400" />
-                    </div>
-                    <div className="space-y-2 text-right">
-                      <p className="text-[10px] font-black text-cyan-600 uppercase tracking-widest mr-1">Candidate</p>
-                      <div className="bg-cyan-500/[0.03] border border-cyan-500/20 p-5 rounded-[24px] rounded-tr-none text-sm leading-relaxed text-white shadow-lg">
-                        {q.answer}
-                      </div>
+
+                <div className="flex gap-5 max-w-3xl ml-auto flex-row-reverse">
+                  <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 flex-shrink-0 flex items-center justify-center border border-cyan-500/20 shadow-xl">
+                    <User className="w-5 h-5 text-cyan-400" />
+                  </div>
+
+                  <div className="space-y-2 text-right">
+                    <p className="text-[10px] font-black text-cyan-600 uppercase tracking-widest mr-1">
+                      Candidate
+                    </p>
+
+                    <div className="bg-cyan-500/[0.03] border border-cyan-500/20 p-5 rounded-[24px] rounded-tr-none text-sm leading-relaxed text-white shadow-lg">
+                      {item.answer}
                     </div>
                   </div>
-                )}
+                </div>
               </motion.div>
             ))}
 
@@ -618,7 +730,7 @@ const InterviewRoomPage = () => {
           )}
         </main>
 
-        <footer className="p-8 bg-[#070b13]/80 backdrop-blur-2xl border-t border-slate-800/50 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+        <footer className="p-8 bg-[#070b13]/80 backdrop-blur-2xl border-t border-slate-800/50 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] shrink-0">
           <form onSubmit={handleAnswerSubmit} className="max-w-4xl mx-auto flex gap-6">
             <button
               type="button"
@@ -645,7 +757,7 @@ const InterviewRoomPage = () => {
       </div>
 
       {/* RIGHT: Status & Intelligence */}
-      <div className="w-[350px] border-l border-slate-800/50 bg-[#070b13]/50 backdrop-blur-xl flex flex-col z-20">
+      <div className="w-[350px] border-l border-slate-800/50 bg-[#070b13]/50 backdrop-blur-xl flex flex-col z-20 overflow-hidden">
         <div className="p-8 space-y-8 flex-1 overflow-y-auto scrollbar-hide">
           {/* Session Status */}
           <div className="space-y-4">
@@ -753,7 +865,7 @@ const InterviewRoomPage = () => {
           )}
         </div>
 
-        <div className="p-8 border-t border-slate-800/50">
+        <div className="p-8 border-t border-slate-800/50 shrink-0">
           <div className="flex items-center gap-4 bg-slate-900/30 p-4 rounded-2xl border border-slate-800/50">
             <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-600">
               <AlertCircle className="w-5 h-5" />
