@@ -2,26 +2,26 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, AuthContext } from '../context/AuthContext';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar } from 'recharts';
-import { 
-  Trophy, Brain, FileText, AlertTriangle, CheckCircle, 
-  ArrowRight, Sparkles, Zap, BarChart3, Plus 
+import {
+  Trophy, Brain, FileText, AlertTriangle, CheckCircle,
+  ArrowRight, Sparkles, Zap, BarChart3, Plus
 } from 'lucide-react';
 
 const DashboardPage = () => {
   const { user } = useContext(AuthContext);
   const [stats, setStats] = useState({
-  totalInterviews: 0,
-  bestScore: 0,
-  readinessScore: 0,
-  improvementPercentage: 0,
-  topStrengths: [],
-  topWeaknesses: [],
-  recommendedTopics: [],
-  skillChart: [],
-  recommendation: "",
-  hasResume: false,
-  hasJD: false
-});
+    totalInterviews: 0,
+    bestScore: 0,
+    readinessScore: 0,
+    improvementPercentage: 0,
+    topStrengths: [],
+    topWeaknesses: [],
+    recommendedTopics: [],
+    skillChart: [],
+    recommendation: "",
+    hasResume: false,
+    hasJD: false
+  });
   const [recentReports, setRecentReports] = useState([]);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,17 +83,17 @@ const DashboardPage = () => {
           <h1 className="text-3xl font-extrabold text-white">Welcome, {user?.name || 'Developer'}</h1>
           <p className="text-slate-400 text-sm mt-1">Here is your HireMe AI assessment summary.</p>
         </div>
-        
+
         {stats.hasResume && stats.hasJD && (
           <div className="flex gap-4">
-            <button 
+            <button
               onClick={startDemoInterview}
               className="px-5 py-3 rounded-xl text-sm font-bold text-black bg-gradient-to-r from-cyan-400 to-indigo-400 hover:opacity-90 transition duration-200 shadow-glow-cyan flex items-center gap-1.5 cursor-pointer"
             >
               <Sparkles className="h-4 w-4 animate-spin" />
               Quick Demo Interview (3 Qs)
             </button>
-            <Link 
+            <Link
               to="/match"
               className="px-5 py-3 rounded-xl text-sm font-semibold text-white border border-slate-700 bg-slate-900/40 hover:bg-slate-900/60 transition duration-200 flex items-center gap-1.5"
             >
@@ -177,24 +177,24 @@ const DashboardPage = () => {
         <div className="glass-panel p-6 rounded-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10 text-cyan-400"><Zap className="h-10 w-10" /></div>
           <p className="text-xs font-medium text-slate-400">
-  Interview Readiness
-</p>
+            Interview Readiness
+          </p>
 
-<p className="text-3xl font-extrabold text-white mt-2">
-  {stats.readinessScore || 0}%
-</p>
+          <p className="text-3xl font-extrabold text-white mt-2">
+            {stats.readinessScore || 0}%
+          </p>
         </div>
 
         {/* KPI 4 */}
         <div className="glass-panel p-6 rounded-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10 text-indigo-400"><FileText className="h-10 w-10" /></div>
           <p className="text-xs font-medium text-slate-400">
-  Improvement
-</p>
+            Improvement
+          </p>
 
-<p className="text-3xl font-extrabold text-white mt-2">
-  +{stats.improvementPercentage || 0}%
-</p>
+          <p className="text-3xl font-extrabold text-white mt-2">
+            {`${stats.improvementPercentage > 0 ? '+' : ''}${stats.improvementPercentage || 0}%`}
+          </p>
         </div>
       </div>
 
@@ -211,7 +211,7 @@ const DashboardPage = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={history} margin={{ left: -20, right: 10, top: 10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" opacity={0.3} />
-                  <XAxis dataKey="date" stroke="#94a3b8" fontSize={11} />
+                  <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} angle={-35} textAnchor="end" height={70} />
                   <YAxis stroke="#94a3b8" fontSize={11} domain={[0, 100]} />
                   <Tooltip contentStyle={{ backgroundColor: '#0d1426', borderColor: '#1e293b', borderRadius: '12px', fontSize: 12 }} />
                   <Line type="monotone" dataKey="score" stroke="#06b6d4" strokeWidth={3} activeDot={{ r: 6 }} dot={{ strokeWidth: 2 }} />
@@ -234,10 +234,10 @@ const DashboardPage = () => {
                   <YAxis stroke="#94a3b8" fontSize={11} domain={[0, 100]} />
                   <Tooltip contentStyle={{ backgroundColor: '#0d1426', borderColor: '#1e293b', borderRadius: '12px', fontSize: 12 }} />
                   <Bar
-  dataKey="score"
-  fill="#06b6d4"
-  radius={[4,4,0,0]}
-/>
+                    dataKey="score"
+                    fill="#06b6d4"
+                    radius={[4, 4, 0, 0]}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -247,68 +247,68 @@ const DashboardPage = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-  <div className="glass-panel p-6 rounded-2xl">
-    <h3 className="text-lg font-bold text-white mb-4">
-      Top Strengths
-    </h3>
+        <div className="glass-panel p-6 rounded-2xl">
+          <h3 className="text-lg font-bold text-white mb-4">
+            Top Strengths
+          </h3>
 
-    <div className="space-y-2">
-      {(stats.topStrengths || []).map((item,index)=>(
-        <div
-          key={index}
-          className="text-green-400 text-sm"
-        >
-          ✅ {item}
+          <div className="space-y-2">
+            {(stats.topStrengths || []).map((item, index) => (
+              <div
+                key={index}
+                className="text-green-400 text-sm"
+              >
+                ✅ {item}
+              </div>
+            ))}
+          </div>
         </div>
-      ))}
-    </div>
-  </div>
 
-  <div className="glass-panel p-6 rounded-2xl">
-  <h3 className="text-lg font-bold text-white mb-4">
-    Recommended Topics
-  </h3>
+        <div className="glass-panel p-6 rounded-2xl">
+          <h3 className="text-lg font-bold text-white mb-4">
+            Recommended Topics
+          </h3>
 
-  <div className="flex flex-wrap gap-2">
-    {(stats.recommendedTopics || []).map((topic,index)=>(
-      <span
-        key={index}
-        className="px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 text-xs"
-      >
-        {topic}
-      </span>
-    ))}
-  </div>
-</div>
-
-<div className="glass-panel p-6 rounded-2xl">
-  <h3 className="text-lg font-bold text-white mb-4">
-    AI Career Coach
-  </h3>
-
-  <p className="text-slate-300 leading-relaxed">
-    {stats.recommendation}
-  </p>
-</div>
-
-  <div className="glass-panel p-6 rounded-2xl">
-    <h3 className="text-lg font-bold text-white mb-4">
-      Areas To Improve
-    </h3>
-
-    <div className="space-y-2">
-      {(stats.topWeaknesses || []).map((item,index)=>(
-        <div
-          key={index}
-          className="text-yellow-400 text-sm"
-        >
-          ⚠️ {item}
+          <div className="flex flex-wrap gap-2">
+            {(stats.recommendedTopics || []).map((topic, index) => (
+              <span
+                key={index}
+                className="px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 text-xs"
+              >
+                {topic}
+              </span>
+            ))}
+          </div>
         </div>
-      ))}
-    </div>
-  </div>
 
-</div>
+        <div className="glass-panel p-6 rounded-2xl">
+          <h3 className="text-lg font-bold text-white mb-4">
+            AI Career Coach
+          </h3>
+
+          <p className="text-slate-300 leading-relaxed">
+            {stats.recommendation}
+          </p>
+        </div>
+
+        <div className="glass-panel p-6 rounded-2xl">
+          <h3 className="text-lg font-bold text-white mb-4">
+            Areas To Improve
+          </h3>
+
+          <div className="space-y-2">
+            {(stats.topWeaknesses || []).map((item, index) => (
+              <div
+                key={index}
+                className="text-yellow-400 text-sm"
+              >
+                ⚠️ {item}
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
 
       {/* Recent Assessment Reports */}
       <div className="glass-panel p-6 rounded-2xl relative z-10 space-y-6">
@@ -325,7 +325,7 @@ const DashboardPage = () => {
           <div className="py-10 text-center space-y-4">
             <p className="text-slate-400 text-sm">No interviews completed yet.</p>
             {stats.hasResume && stats.hasJD && (
-              <button 
+              <button
                 onClick={startDemoInterview}
                 className="px-6 py-2.5 rounded-xl text-xs font-bold text-black bg-gradient-to-r from-cyan-400 to-indigo-400 hover:opacity-90 transition duration-200 cursor-pointer shadow-glow-cyan"
               >
@@ -351,7 +351,7 @@ const DashboardPage = () => {
                     </span>
                   </div>
                   {/* Action Link */}
-                  <Link 
+                  <Link
                     to={`/reports/${report._id}`}
                     className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/40 transition duration-150"
                   >
