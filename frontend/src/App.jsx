@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 
+
 // Import Pages
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
@@ -15,6 +16,7 @@ import MatchAnalysisPage from './pages/MatchAnalysisPage';
 import InterviewRoomPage from './pages/InterviewRoomPage';
 import ReportsPage from './pages/ReportsPage';
 import ProfilePage from './pages/ProfilePage';
+import CommunityPage from './pages/CommunityPage';
 
 
 /*
@@ -93,6 +95,14 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+  path="/community"
+  element={
+    <ProtectedRoute>
+      <CommunityPage />
+    </ProtectedRoute>
+  }
+/>
             </Routes>
           </main>
         </div>
