@@ -146,18 +146,23 @@ recognition.maxAlternatives = 1;
   recognition.lang = "en-US";
 
   recognition.onresult = (event) => {
-  console.log("RESULT EVENT FIRED");
-  console.log(event);
+  let finalTranscript = "";
 
-  let transcript = "";
+  for (
+    let i = event.resultIndex;
+    i < event.results.length;
+    i++
+  ) {
+    const result = event.results[i];
 
-  for (let i = 0; i < event.results.length; i++) {
-    transcript += event.results[i][0].transcript;
+    if (result.isFinal) {
+      finalTranscript += result[0].transcript + " ";
+    }
   }
 
-  console.log("Transcript:", transcript);
-
-  setAnswer(prev => prev + " " + transcript);
+  if (finalTranscript) {
+    setAnswer((prev) => prev + finalTranscript);
+  }
 };
 
 recognition.onerror = (event) => {
