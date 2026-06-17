@@ -170,27 +170,25 @@ const InterviewRoomPage = () => {
 
     const recognition = new SpeechRecognition();
 
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
-    recognition.lang = "en-US";
+  recognition.onresult = (event) => {
+  let finalTranscript = "";
 
-    recognition.onresult = (event) => {
-      let finalText = "";
-      let interimText = "";
+  for (
+    let i = event.resultIndex;
+    i < event.results.length;
+    i++
+  ) {
+    const result = event.results[i];
 
-      for (let i = 0; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
+    if (result.isFinal) {
+      finalTranscript += result[0].transcript + " ";
+    }
+  }
 
-        if (event.results[i].isFinal) {
-          finalText += transcript + " ";
-        } else {
-          interimText += transcript;
-        }
-      }
-
-      setAnswer((finalText + interimText).trim());
-    };
+  if (finalTranscript) {
+    setAnswer((prev) => prev + finalTranscript);
+  }
+};
 
     recognition.onerror = (event) => {
       console.log("ERROR EVENT:", event.error);
