@@ -89,7 +89,7 @@ router.post('/answer', protect, async (req, res) => {
     }
 
     const currentQuestion = interview.questions[currentIndex];
-    
+
     // Fetch resume and JD context
     const resume = await Resume.findById(interview.resumeId);
     const jd = await JobDescription.findById(interview.jdId);
@@ -107,13 +107,18 @@ router.post('/answer', protect, async (req, res) => {
     });
 
     interview.currentQuestionIndex += 1;
-    
+
     let isCompleted = false;
     if (interview.currentQuestionIndex >= interview.questions.length) {
       interview.status = 'completed';
       isCompleted = true;
     }
 
+    console.log("QUESTIONS:");
+    console.log(interview.questions);
+
+    console.log("ANSWERS:");
+    console.log(interview.answers);
     await interview.save();
 
     return res.json({
@@ -135,7 +140,7 @@ router.post('/answer', protect, async (req, res) => {
 router.post('/finalize', protect, async (req, res) => {
   try {
     const interview = await Interview.findOne({ userId: req.user._id, status: 'in-progress' });
-    
+
     let targetInterview = interview;
     if (!targetInterview) {
       targetInterview = await Interview.findOne({ userId: req.user._id }).sort({ createdAt: -1 });
@@ -202,17 +207,61 @@ router.get('/reports', protect, async (req, res) => {
 });
 
 // @route   GET /api/interview/reports/:id
-// @desc    Get single report details
+// @desc    Get single report details with actual question evaluation averages
 router.get('/reports/:id', protect, async (req, res) => {
   try {
-    const report = await Report.findById(req.params.id);
-    if (!report) {
+    const reportObj = await Report.findById(req.params.id);
+    if (!reportObj) {
       return res.status(404).json({ success: false, message: 'Report card not found.' });
     }
     // Check ownership
-    if (report.userId.toString() !== req.user._id.toString()) {
+    if (reportObj.userId.toString() !== req.user._id.toString()) {
       return res.status(401).json({ success: false, message: 'Unauthorized access.' });
     }
+
+    const report = reportObj.toObject();
+
+    // Query the associated interview to aggregate exact response evaluation coordinates
+    const interview = await Interview.findById(report.interviewId);
+    let avgRelevance = 0;
+    let avgCompleteness = 0;
+    let avgAccuracy = 0;
+    let avgConfidence = 0;
+
+    if (interview && interview.answers && interview.answers.length > 0) {
+      const answeredCount = interview.answers.length;
+      let totalRelevance = 0;
+      let totalCompleteness = 0;
+      let totalAccuracy = 0;
+      let totalConfidence = 0;
+
+      interview.answers.forEach(ans => {
+        if (ans.evaluation) {
+          totalRelevance += ans.evaluation.relevance || 0;
+          totalCompleteness += ans.evaluation.completeness || 0;
+          totalAccuracy += ans.evaluation.accuracy || 0;
+          totalConfidence += ans.evaluation.confidence || 0;
+        }
+      });
+
+      // Convert from 0-10 base to 0-100 percentage metric for capability chart
+      avgRelevance = Math.round((totalRelevance / answeredCount) * 10);
+      avgCompleteness = Math.round((totalCompleteness / answeredCount) * 10);
+      avgAccuracy = Math.round((totalAccuracy / answeredCount) * 10);
+      avgConfidence = Math.round((totalConfidence / answeredCount) * 10);
+    } else {
+      // Fallback fallback to overall score if details are missing
+      avgRelevance = report.overallScore;
+      avgCompleteness = report.overallScore;
+      avgAccuracy = report.overallScore;
+      avgConfidence = report.overallScore;
+    }
+
+    report.avgRelevance = avgRelevance;
+    report.avgCompleteness = avgCompleteness;
+    report.avgAccuracy = avgAccuracy;
+    report.avgConfidence = avgConfidence;
+
     return res.json({ success: true, report });
   } catch (error) {
     console.error('Get single report error:', error);
