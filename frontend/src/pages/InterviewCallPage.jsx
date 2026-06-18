@@ -1,14 +1,24 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { api } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const InterviewCallPage = () => {
     const [tavusUrl, setTavusUrl] = useState(null);
+    const [conversationId, setConversationId] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const navigate = useNavigate();
+    const hasCreated = useRef(false);
 
     useEffect(() => {
-        createConversation();
-    }, []);
+
+  if (hasCreated.current) return;
+
+  hasCreated.current = true;
+
+  createConversation();
+
+}, []);
 
     const createConversation = async () => {
         try {
@@ -21,6 +31,7 @@ const InterviewCallPage = () => {
             console.log("Tavus Response:", res.data);
 
             setTavusUrl(res.data.conversationUrl);
+            setConversationId(res.data.conversationId);
         } catch (err) {
             console.error(err);
 
@@ -33,7 +44,39 @@ const InterviewCallPage = () => {
             setLoading(false);
         }
     };
+    const endInterview = async () => {
+        
 
+  const confirmLeave =
+    window.confirm(
+      "Are you sure you want to end the interview?"
+    );
+
+  if (!confirmLeave) return;
+
+  try {
+
+    if (conversationId) {
+
+      await api.post(
+        "/tavus/end-conversation",
+        {
+          conversationId
+        }
+      );
+
+    }
+
+  } catch (err) {
+
+    console.error(err);
+
+  } finally {
+
+    navigate("/dashboard");
+
+  }
+};
     if (loading) {
         return (
             <div className="h-screen bg-black flex items-center justify-center text-white text-xl">
@@ -64,19 +107,30 @@ const InterviewCallPage = () => {
     }
 
     return (
-        <div className="h-screen bg-black flex flex-col">
-            <div className="h-16 px-6 flex items-center justify-between border-b border-slate-800 text-white">
-                <h1 className="font-bold text-xl">
-                    HireMe AI Interview
-                </h1>
-            </div>
+        return (
+    <div className="fixed inset-0 bg-black flex flex-col z-50">
 
-            <div className="flex-1">
+        <div className="h-16 px-6 flex items-center justify-between border-b border-slate-800 text-white">
+
+            <h1 className="font-bold text-xl">
+                HireMe AI Interview
+            </h1>
+
+            <button
+                onClick={endInterview}
+                className="px-5 py-2 bg-red-600 rounded-lg hover:bg-red-700"
+            >
+                End Interview
+            </button>
+
+        </div>
+
+        <div className="flex-1 overflow-hidden">
                 {tavusUrl && (
                     <iframe
                         src={tavusUrl}
                         allow="camera; microphone; autoplay"
-                        className="w-full h-full border-0"
+                        className="w-full h-full border-0 overflow-hidden"
                         title="Tavus Interview"
                     />
                 )}

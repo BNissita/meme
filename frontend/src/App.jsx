@@ -17,6 +17,7 @@ import ReportsPage from './pages/ReportsPage';
 import ProfilePage from './pages/ProfilePage';
 import CommunityPage from './pages/CommunityPage';
 import InterviewCallPage from './pages/InterviewCallPage';
+import InterviewGuidelinesPage from './pages/InterviewGuidelinesPage';
 
 
 /*
@@ -52,6 +53,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <InterviewCallPage/>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/interview-guidelines"
+                element={
+                  <ProtectedRoute>
+                    <InterviewGuidelinesPage />
                   </ProtectedRoute>
                 }
               />

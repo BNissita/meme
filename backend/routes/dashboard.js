@@ -7,6 +7,7 @@ const Resume = require('../models/Resume');
 const JobDescription = require('../models/JobDescription');
 
 // @route   GET /api/dashboard/stats
+
 // @desc    Get aggregated stats for candidate dashboard
 router.get('/stats', protect, async (req, res) => {
   try {

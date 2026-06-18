@@ -7,6 +7,26 @@ const JobDescription = require('../models/JobDescription');
 const aiService = require('../services/aiService');
 
 // @route   POST /api/jd/text
+router.get("/history", protect, async (req, res) => {
+  try {
+    const history = await JobDescription.find({
+      userId: req.user._id,
+    })
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      history,
+    });
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch JD history",
+    });
+  }
+});
 // @desc    Submit JD by pasting text
 router.post('/text', protect, async (req, res) => {
   const { title, company, jdText } = req.body;
@@ -22,7 +42,7 @@ router.post('/text', protect, async (req, res) => {
       userId: req.user._id,
       title: title || parsedJD.title || 'Untitled Position',
       company: company || parsedJD.company || '',
-      jdText: jdText,
+      content: jdText,
       requiredSkills: parsedJD.requiredSkills || [],
       responsibilities: parsedJD.responsibilities || [],
       experienceRequirements: parsedJD.experienceRequirements || '',
@@ -72,7 +92,7 @@ router.post('/upload', protect, upload.single('jdFile'), async (req, res) => {
       userId: req.user._id,
       title: parsedJD.title || 'Untitled Position',
       company: parsedJD.company || '',
-      jdText: extractedText,
+      content: extractedText,
       requiredSkills: parsedJD.requiredSkills || [],
       responsibilities: parsedJD.responsibilities || [],
       experienceRequirements: parsedJD.experienceRequirements || '',

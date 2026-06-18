@@ -1,4 +1,3 @@
-console.log("Tavus routes loaded");
 const express = require("express");
 const axios = require("axios");
 
@@ -71,7 +70,12 @@ router.post(
   {
     replica_id: process.env.TAVUS_REPLICA_ID,
     persona_id: process.env.TAVUS_PERSONA_ID,
-    conversation_name: "HireMe AI Interview"
+    conversation_name: "HireMe AI Interview",
+
+    properties: {
+      enable_closed_captions: true,
+      language: "English"
+    }
   },
   {
     headers: {
@@ -123,6 +127,46 @@ router.get(
             });
         }
     }
+);
+router.post(
+  "/end-conversation",
+  protect,
+  async (req, res) => {
+    try {
+
+      const { conversationId } = req.body;
+
+      if (!conversationId) {
+        return res.status(400).json({
+          success: false,
+          message: "Conversation ID required"
+        });
+      }
+
+      await axios.delete(
+        `https://tavusapi.com/v2/conversations/${conversationId}`,
+        {
+          headers: {
+            "x-api-key": process.env.TAVUS_API_KEY
+          }
+        }
+      );
+
+      return res.json({
+        success: true
+      });
+
+    } catch (err) {
+
+      console.log("END CONVERSATION ERROR");
+      console.log(err.response?.data);
+
+      return res.status(500).json({
+        success: false,
+        error: err.message
+      });
+    }
+  }
 );
 
 module.exports = router;

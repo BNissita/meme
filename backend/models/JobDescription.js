@@ -1,23 +1,28 @@
 const mongoose = require('mongoose');
 
-const JobDescriptionSchema = new mongoose.Schema({
+const jobDescriptionSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: "User",
+    required: true,
   },
-  title: { type: String, default: 'Untitled Position' },
-  company: { type: String, default: '' },
-  jdText: { type: String, required: true },
-  requiredSkills: { type: [String], default: [] },
-  responsibilities: { type: [String], default: [] },
-  experienceRequirements: { type: String, default: '' },
-  technologies: { type: [String], default: [] },
-  softSkills: { type: [String], default: [] },
+
+  title: String,
+
+  company: String,
+
+  content: {
+    type: String,
+    required: true,
+  },
+
   createdAt: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
-module.exports = mongoose.model('JobDescription', JobDescriptionSchema);
+module.exports = mongoose.model(
+  "JobDescription",
+  jobDescriptionSchema
+);

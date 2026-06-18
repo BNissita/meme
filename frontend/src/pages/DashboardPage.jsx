@@ -83,25 +83,6 @@ const DashboardPage = () => {
           <h1 className="text-3xl font-extrabold text-white">Welcome, {user?.name || 'Developer'}</h1>
           <p className="text-slate-400 text-sm mt-1">Here is your HireMe AI assessment summary.</p>
         </div>
-
-        {stats.hasResume && stats.hasJD && (
-          <div className="flex gap-4">
-            <button
-              onClick={startDemoInterview}
-              className="px-5 py-3 rounded-xl text-sm font-bold text-black bg-gradient-to-r from-cyan-400 to-indigo-400 hover:opacity-90 transition duration-200 shadow-glow-cyan flex items-center gap-1.5 cursor-pointer"
-            >
-              <Sparkles className="h-4 w-4 animate-spin" />
-              Quick Demo Interview (3 Qs)
-            </button>
-            <Link
-              to="/match"
-              className="px-5 py-3 rounded-xl text-sm font-semibold text-white border border-slate-700 bg-slate-900/40 hover:bg-slate-900/60 transition duration-200 flex items-center gap-1.5"
-            >
-              <Zap className="h-4 w-4 text-yellow-400" />
-              Analyze Fit
-            </Link>
-          </div>
-        )}
       </div>
 
       {/* Upload Checklists alerts if missing */}

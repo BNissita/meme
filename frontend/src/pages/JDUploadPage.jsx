@@ -16,6 +16,7 @@ const JDUploadPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [jdData, setJdData] = useState(null);
+  const [jdHistory, setJdHistory] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,6 +31,20 @@ const JDUploadPage = () => {
         // Safe to ignore 404
       });
   }, []);
+
+  useEffect(() => {
+  loadHistory();
+}, []);
+
+const loadHistory = async () => {
+  try {
+    const res = await api.get("/jd/history");
+
+    setJdHistory(res.data.history);
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   const handleTextSubmit = async (e) => {
     e.preventDefault();
@@ -48,6 +63,7 @@ const JDUploadPage = () => {
       });
       if (response.data.success) {
         setJdData(response.data.jd);
+        await loadHistory();
       }
     } catch (err) {
       console.error(err);
@@ -75,6 +91,8 @@ const JDUploadPage = () => {
       });
       if (response.data.success) {
         setJdData(response.data.jd);
+        await loadHistory();
+
       }
     } catch (err) {
       console.error(err);
@@ -218,6 +236,43 @@ const JDUploadPage = () => {
               </form>
             )}
           </div>
+          <div className="glass-panel rounded-2xl p-5">
+  <h3 className="text-white font-bold mb-4">
+    Previous Job Descriptions
+  </h3>
+
+  {jdHistory.length === 0 ? (
+    <p className="text-slate-500 text-sm">
+      No previous job descriptions found.
+    </p>
+  ) : (
+    <div className="space-y-3 max-h-[350px] overflow-y-auto">
+      {jdHistory.map((jd) => (
+        <button
+          key={jd._id}
+          onClick={() => setJdData(jd)}
+          className={`w-full text-left p-4 rounded-xl border transition-all ${
+            jdData?._id === jd._id
+              ? "border-cyan-500 bg-cyan-500/10"
+              : "border-slate-800 bg-slate-950/30 hover:border-slate-700"
+          }`}
+        >
+          <p className="text-white text-sm font-semibold truncate">
+            {jd.title || "Untitled Position"}
+          </p>
+
+          <p className="text-cyan-400 text-xs">
+            {jd.company || "Unknown Company"}
+          </p>
+
+          <p className="text-slate-500 text-[11px] mt-1">
+            {new Date(jd.createdAt).toLocaleDateString()}
+          </p>
+        </button>
+      ))}
+    </div>
+  )}
+</div>
         </div>
 
         {/* Preview Column */}
