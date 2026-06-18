@@ -137,7 +137,7 @@ Keep it professional and concise.
     Resume Text:
     ${text}
   `;
-  
+
   try {
     const resultText = await callGroq(prompt);
     return parseJSONResponse(resultText, getMockResumeAnalysis(text));
@@ -148,9 +148,9 @@ Keep it professional and concise.
 };
 
 const generateResumeInsights =
-async (resume) => {
+  async (resume) => {
 
-const prompt = `
+    const prompt = `
 You are an expert recruiter.
 
 Analyze this resume.
@@ -169,11 +169,11 @@ Resume:
 ${JSON.stringify(resume)}
 `;
 
-const result =
-await callGroq(prompt);
+    const result =
+      await callGroq(prompt);
 
-return parseJSONResponse(result);
-};
+    return parseJSONResponse(result);
+  };
 
 /**
  * 2. Analyze Job Description Text
@@ -254,31 +254,31 @@ Return ONLY valid JSON:
 
 Resume:
 ${JSON.stringify({
-  name: resume.name,
-  skills: resume.skills,
-  projects: resume.projects,
-  experience: resume.experience,
-  education: resume.education,
-  certifications: resume.certifications
-})}
+    name: resume.name,
+    skills: resume.skills,
+    projects: resume.projects,
+    experience: resume.experience,
+    education: resume.education,
+    certifications: resume.certifications
+  })}
 
 Job Description:
 ${JSON.stringify({
-  title: jd.title,
-  requiredSkills: jd.requiredSkills,
-  technologies: jd.technologies,
-  experienceRequirements: jd.experienceRequirements
-})}
+    title: jd.title,
+    requiredSkills: jd.requiredSkills,
+    technologies: jd.technologies,
+    experienceRequirements: jd.experienceRequirements
+  })}
 `;
 
   try {
-  const resultText = await callGroq(prompt);
+    const resultText = await callGroq(prompt);
 
-  console.log("MATCH RAW RESPONSE:");
-  console.log(resultText);
+    console.log("MATCH RAW RESPONSE:");
+    console.log(resultText);
 
-  return parseJSONResponse(resultText, getMockMatch(resume, jd));
-} catch (error) {
+    return parseJSONResponse(resultText, getMockMatch(resume, jd));
+  } catch (error) {
     console.error("Gemini matchResumeJD error, falling back to mock:", error);
     return getMockMatch(resume, jd);
   }
@@ -333,7 +333,7 @@ Instead:
  * 5. Generate Interview Questions (10-15)
  */
 const generateInterviewQuestions = async (resume, jd) => {
-  
+
   const prompt = `
     Generate 10 to 12 highly relevant and challenging interview questions for a mock interview.
     The candidate's resume and target Job Description are provided below.
@@ -379,7 +379,7 @@ const generateInterviewQuestions = async (resume, jd) => {
  * 6. Evaluate Candidate's Answer
  */
 const evaluateAnswer = async (question, answer, resume, jd) => {
-  
+
   const prompt = `
     You are an expert tech recruiter. Evaluate the candidate's answer to the interview question below.
     Provide constructive feedback and granular scores out of 10.
@@ -417,7 +417,7 @@ const evaluateAnswer = async (question, answer, resume, jd) => {
  * 7. Generate Final Interview Report
  */
 const generateFinalReport = async (questions, answers) => {
-  
+
   const prompt = `
     Analyze the candidate's performance across the entire mock interview session.
     A list of questions, candidate answers, and individual evaluations are provided.
@@ -425,12 +425,12 @@ const generateFinalReport = async (questions, answers) => {
     
     Interview Details:
     ${JSON.stringify(answers.map(a => ({
-      question: a.question,
-      type: a.type,
-      answer: a.answer,
-      score: a.evaluation?.score,
-      feedback: a.evaluation?.feedback
-    })))}
+    question: a.question,
+    type: a.type,
+    answer: a.answer,
+    score: a.evaluation?.score,
+    feedback: a.evaluation?.feedback
+  })))}
 
     Return a JSON object matching this schema:
     {
@@ -470,7 +470,7 @@ const generateFinalReport = async (questions, answers) => {
 function getMockResumeAnalysis(text) {
   // Simple heuristic parsing for mock responses
   const cleanText = text.toLowerCase();
-  
+
   // Detect skills
   const skillsList = ['react', 'node.js', 'mongodb', 'express', 'javascript', 'typescript', 'html', 'css', 'python', 'java', 'c++', 'aws', 'docker', 'kubernetes', 'git', 'sql', 'next.js', 'redux', 'graphql', 'tailwind'];
   const skills = skillsList.filter(s => cleanText.includes(s));
@@ -487,7 +487,7 @@ function getMockResumeAnalysis(text) {
   let name = "Alex Mercer";
   let email = "alex.mercer@gmail.com";
   let phone = "+1 (555) 019-2834";
-  
+
   const emailRegex = /[\w.-]+@[\w.-]+\.\w+/;
   const matchEmail = text.match(emailRegex);
   if (matchEmail) email = matchEmail[0];
@@ -551,14 +551,14 @@ function getMockResumeAnalysis(text) {
 
 function getMockJDAnalysis(text) {
   const cleanText = text.toLowerCase();
-  
+
   // Job title heuristic
   let title = "Full Stack Developer";
   if (cleanText.includes("frontend")) title = "Frontend Engineer";
   else if (cleanText.includes("backend")) title = "Backend Engineer";
   else if (cleanText.includes("senior")) title = "Senior Full Stack Developer";
   else if (cleanText.includes("intern")) title = "Software Engineering Intern";
-  
+
   let company = "InnovateTech Inc.";
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   if (lines.length > 1 && lines[0].toLowerCase().includes("job") && lines[1].length < 30) {
@@ -591,7 +591,7 @@ function getMockJDAnalysis(text) {
 function getMockMatch(resume, jd) {
   const resumeSkillsSet = new Set((resume.skills || []).map(s => s.toLowerCase()));
   const jdSkills = jd.requiredSkills || ['react', 'node.js', 'mongodb', 'express', 'docker', 'aws'];
-  
+
   const matchedSkills = [];
   const missingSkills = [];
 
@@ -639,7 +639,7 @@ function getMockATS(resume, jd) {
   const formattingScore = 85; // Standard sections found
   const actionVerbsScore = 70; // Hardcoded standard
   const readabilityScore = 80;
-  
+
   const atsScore = Math.round((keywordMatchScore * 0.4) + (formattingScore * 0.2) + (actionVerbsScore * 0.2) + (readabilityScore * 0.2));
 
   return {
@@ -716,7 +716,7 @@ function getMockQuestions(resume, jd) {
 
 function getMockAnswerEvaluation(question, answer) {
   const wordsCount = answer.trim().split(/\s+/).length;
-  
+
   let score = 5;
   let feedback = "Your answer was received, but was extremely short. Please try to provide more detail, using the STAR method for behavioral questions or technical examples for conceptual questions.";
   let suggestions = "Explain key terminologies, give a real-world project example, and structure your answer with a beginning, middle, and end.";
@@ -737,7 +737,7 @@ function getMockAnswerEvaluation(question, answer) {
   const communication = Math.min(10, Math.round(score + 0.5));
   const completeness = Math.min(10, Math.round(score - 0.5));
   const confidence = Math.min(10, Math.round(score + 1.2));
-  
+
   const finalScore = Number(((relevance + accuracy + communication + completeness + confidence) / 5).toFixed(1));
 
   return {
@@ -762,7 +762,7 @@ function getMockFinalReport(questions, answers) {
   answers.forEach(a => {
     const evalScore = a.evaluation?.score || 7.0;
     totalScore += evalScore;
-    
+
     if (a.type === 'Technical') {
       techTotal += evalScore;
       techCount++;
