@@ -6,13 +6,21 @@ const { protect } = require('../middleware/auth');
 
 // Helper to generate JWT token
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'supersecretkey_hireme_ai_hackathon_2026', {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: '30d'
   });
 };
 
+// Cookie configuration helper
+const cookieOptions = {
+  httpOnly: true, // Prevents XSS attacks from reading the token
+  secure: process.env.NODE_ENV === 'production', // true in production (requires HTTPS)
+  sameSite: 'lax', // Protects against CSRF attacks while keeping usability
+  maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days matching JWT expiration
+};
+
 // @route   POST /api/auth/register
-// @desc    Register a new user
+// @desc    Register a new user & set cookie
 router.post('/register', async (req, res) => {
   const { name, email, password } = req.body;
   try {
@@ -27,9 +35,13 @@ router.post('/register', async (req, res) => {
 
     const user = await User.create({ name, email, password });
     if (user) {
+      const token = generateToken(user._id);
+
+      // Set JWT via HttpOnly Cookie
+      res.cookie('token', token, cookieOptions);
+
       return res.status(201).json({
         success: true,
-        token: generateToken(user._id),
         user: {
           id: user._id,
           name: user.name,
@@ -46,7 +58,7 @@ router.post('/register', async (req, res) => {
 });
 
 // @route   POST /api/auth/login
-// @desc    Login user & get token
+// @desc    Login user, get token & set cookie
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -56,9 +68,13 @@ router.post('/login', async (req, res) => {
 
     const user = await User.findOne({ email });
     if (user && (await user.matchPassword(password))) {
+      const token = generateToken(user._id);
+
+      // Set JWT via HttpOnly Cookie
+      res.cookie('token', token, cookieOptions);
+
       return res.json({
         success: true,
-        token: generateToken(user._id),
         user: {
           id: user._id,
           name: user.name,
@@ -75,9 +91,18 @@ router.post('/login', async (req, res) => {
 });
 
 // @route   POST /api/auth/logout
-// @desc    Logout user (simply returns success, client-side handles token purge)
+// @desc    Logout user & clear cookie
 router.post('/logout', (req, res) => {
-  return res.json({ success: true, message: 'Logged out successfully' });
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax'
+  });
+
+  return res.json({ 
+    success: true, 
+    message: 'Logged out successfully' 
+  });
 });
 
 // @route   GET /api/auth/me

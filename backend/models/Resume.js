@@ -39,27 +39,30 @@ const ResumeSchema = new mongoose.Schema({
   strengths: { type: [String], default: [] },
   weaknesses: { type: [String], default: [] },
 
-atsScore: {
-  type: Number,
-  default: 0
-},
+  atsScore: {
+    type: Number,
+    default: 0
+  },
 
-interviewReadiness: {
-  type: Number,
-  default: 0
-},
+  interviewReadiness: {
+    type: Number,
+    default: 0
+  },
 
-aiSummary: {
-  type: String,
-  default: ""
-},
+  aiSummary: {
+    type: String,
+    default: ""
+  },
 
-createdAt: {
-  type: Date,
-  default: Date.now
-}
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
 });
 
-module.exports = mongoose.model('Resume', ResumeSchema);
+ResumeSchema.index({
+  userId: 1,
+  createdAt: -1
+});
 
 module.exports = mongoose.model('Resume', ResumeSchema);

@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 const tavusRoutes = require("./routes/tavus");
 
@@ -13,7 +14,6 @@ const interviewRoutes = require('./routes/interview');
 const dashboardRoutes = require('./routes/dashboard');
 const communityRoutes = require("./routes/communityRoutes");
 
-
 // Initialize app
 const app = express();
 
@@ -21,11 +21,18 @@ const app = express();
 connectDB();
 
 // Middleware
-app.use(cors()); // Allow all cross-origins for seamless hackathon integrations
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
+
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 app.use("/api/community", communityRoutes);
 
+// Test Gemini route
 app.get('/test-gemini', async (req, res) => {
   try {
     const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -50,6 +57,7 @@ app.get('/test-gemini', async (req, res) => {
     });
   }
 });
+
 // Simple healthcheck route
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'HireMe AI API server is running.' });
@@ -62,9 +70,8 @@ app.use('/api/jd', jdRoutes);
 app.use('/api/match', matchRoutes);
 app.use('/api/interview-call', interviewRoutes);
 app.use('/api/dashboard', dashboardRoutes);
-// app.use("/api/livekit", require("./routes/livekit"));
-// app.use("/api/recording", require("./routes/recording"));
-app.use("/api/tavus", require("./routes/tavus"));
+
+app.use("/api/tavus", tavusRoutes);
 
 // Global Error Handler Middleware
 app.use((err, req, res, next) => {
