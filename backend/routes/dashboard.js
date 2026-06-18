@@ -11,7 +11,23 @@ const JobDescription = require('../models/JobDescription');
 router.get('/stats', protect, async (req, res) => {
   try {
     // 1. Best score from reports
-    const reports = await Report.find({ userId: req.user._id }).sort({ createdAt: -1 });
+    const reports = await Report.find(
+      { userId: req.user._id },
+      {
+        overallScore: 1,
+        technicalScore: 1,
+        communicationScore: 1,
+        problemSolvingScore: 1,
+        strengths: 1,
+        weaknesses: 1,
+        recommendedTopics: 1,
+        missedConcepts: 1,
+        improvementPlan: 1,
+        createdAt: 1
+      }
+    )
+      .sort({ createdAt: -1 })
+      .lean();
     let bestScore = 0;
     if (reports.length > 0) {
       bestScore = Math.max(...reports.map(r => r.overallScore));
@@ -20,8 +36,15 @@ router.get('/stats', protect, async (req, res) => {
     const totalInterviews = reports.length;
 
     // 3. Check for existence of resume & JD
-    const latestResume = await Resume.findOne({ userId: req.user._id }).sort({ createdAt: -1 });
-    const latestJD = await JobDescription.findOne({ userId: req.user._id }).sort({ createdAt: -1 });
+    const [latestResume, latestJD] = await Promise.all([
+      Resume.findOne({ userId: req.user._id })
+        .sort({ createdAt: -1 })
+        .lean(),
+
+      JobDescription.findOne({ userId: req.user._id })
+        .sort({ createdAt: -1 })
+        .lean()
+    ]);
 
     const latestReport = reports.length > 0 ? reports[0] : null;
     const topStrengths =
@@ -46,9 +69,7 @@ router.get('/stats', protect, async (req, res) => {
     }
     // 4. Get recent reports list
 
-    const recentReports = await Report.find({ userId: req.user._id })
-      .sort({ createdAt: -1 })
-      .limit(5);
+    const recentReports = reports.slice(0, 5);
 
     // 5. Build timeline history for charts
     const history = reports.map(r => ({

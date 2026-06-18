@@ -20,4 +20,9 @@ const JobDescriptionSchema = new mongoose.Schema({
   }
 });
 
+JobDescriptionSchema.index({
+  userId: 1,
+  createdAt: -1
+});
+
 module.exports = mongoose.model('JobDescription', JobDescriptionSchema);
