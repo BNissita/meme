@@ -15,6 +15,9 @@ export default function CommunityPage() {
   const [newCompany, setNewCompany] = useState("");
   const [newCategory, setNewCategory] = useState("Interview Experience");
   const [newContent, setNewContent] = useState("");
+  const [expandedPost, setExpandedPost] = useState(null);
+  const [commentText, setCommentText] = useState("");
+  
   // Fixed categories for a cleaner, professional forum look
   const categories = ["All", "Interview Experience", "Preparation Help", "Resume Review", "Job Posting"];
   const [discussions, setDiscussions] = useState([]);
@@ -43,7 +46,6 @@ export default function CommunityPage() {
     if (!newTitle.trim() || !newContent.trim()) return;
 
     try {
-      // 2. & 3. Removed invalid console.log from headers and configured body to use context user
       const response = await fetch(
         "http://localhost:5050/api/community",
         {
@@ -75,9 +77,40 @@ export default function CommunityPage() {
     }
   }
 
+  async function handleComment(postId) {
+    if (!commentText.trim()) return;
+
+    try {
+      const response = await fetch(
+        `http://localhost:5050/api/community/${postId}/comment`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            userName: user?.name || "Anonymous",
+            text: commentText
+          })
+        }
+      );
+
+      const updatedPost = await response.json();
+
+      setDiscussions((prev) =>
+        prev.map((post) =>
+          post._id === postId ? updatedPost : post
+        )
+      );
+
+      setCommentText("");
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   // Toggle Like Engine: Handles both Like & Unlike updates
   async function handleLike(postId) {
-    // FIX 1: Guard clause safely placed at the beginning of the function
     if (!user || !user._id) {
       alert("You must be logged in to like a post!");
       return;
@@ -205,11 +238,11 @@ export default function CommunityPage() {
                 {post.content}
               </p>
 
+              {/* Action Buttons Section */}
               <div className="mt-5 flex gap-6 text-sm font-medium border-t border-slate-800/60 pt-4">
                 <button
                   onClick={() => handleLike(post._id)}
                   className={`flex items-center gap-1.5 transition ${
-                    // FIX 2: Safely read user array inclusion straight from the post object data
                     post.likes?.includes(user?._id)
                       ? "text-cyan-400 font-semibold"
                       : "text-gray-500 hover:text-cyan-400"
@@ -217,12 +250,59 @@ export default function CommunityPage() {
                 >
                   👍 {(post.likes || []).length}
                 </button>
-
-                <div className="flex items-center gap-1.5 text-gray-500">
+                <button
+                  onClick={() =>
+                    setExpandedPost(
+                      expandedPost === post._id ? null : post._id
+                    )
+                  }
+                  className="flex items-center gap-1.5 text-gray-500 hover:text-cyan-400 transition"
+                >
                   💬 {(post.comments || []).length} Comments
-                </div>
-                
+                </button>
               </div>
+
+              {/* Collapsible Comments UI Section - Safely placed inside the post container card */}
+              {expandedPost === post._id && (
+                <div className="mt-4 border-t border-slate-800 pt-4">
+                  {(post.comments || []).length === 0 ? (
+                    <p className="text-gray-500 text-sm py-1">
+                      No comments yet. Be the first one!
+                    </p>
+                  ) : (
+                    post.comments.map((comment, index) => (
+                      <div
+                        key={index}
+                        className="mb-3 bg-slate-800 p-3 rounded-xl border border-slate-700/50"
+                      >
+                        <p className="text-cyan-400 text-sm font-medium">
+                          {comment.userName}
+                        </p>
+                        <p className="text-gray-300 text-sm mt-0.5">
+                          {comment.text}
+                        </p>
+                      </div>
+                    ))
+                  )}
+
+                  <div className="flex gap-2 mt-4">
+                    <input
+                      type="text"
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      placeholder="Write a comment..."
+                      className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-cyan-500 text-white transition"
+                    />
+
+                    <button
+                      onClick={() => handleComment(post._id)}
+                      className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 font-medium rounded-xl text-sm transition"
+                    >
+                      Post
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
