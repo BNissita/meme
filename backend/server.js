@@ -1,8 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser'); // 1. Added cookie-parser import
 const connectDB = require('./config/db');
-
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -20,10 +20,18 @@ const app = express();
 connectDB();
 
 // Middleware
-app.use(cors()); // Allow all cross-origins for seamless hackathon integrations
+// 2 & 3. Configured CORS with credentials and added cookieParser middleware
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 app.use("/api/community", communityRoutes);
+
+// Test Gemini route
 app.get('/test-gemini', async (req, res) => {
   try {
     const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -48,6 +56,7 @@ app.get('/test-gemini', async (req, res) => {
     });
   }
 });
+
 // Simple healthcheck route
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'HireMe AI API server is running.' });
