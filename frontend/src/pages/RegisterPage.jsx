@@ -103,9 +103,6 @@ const RegisterPage = () => {
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-300">Password</label>
             <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500">
-                <Lock className="h-4.5 w-4.5" />
-              </span>
               <input
                 type="password"
                 value={password}

@@ -13,10 +13,10 @@ import DashboardPage from './pages/DashboardPage';
 import ResumeUploadPage from './pages/ResumeUploadPage';
 import JDUploadPage from './pages/JDUploadPage';
 import MatchAnalysisPage from './pages/MatchAnalysisPage';
-import InterviewRoomPage from './pages/InterviewRoomPage';
 import ReportsPage from './pages/ReportsPage';
 import ProfilePage from './pages/ProfilePage';
 import CommunityPage from './pages/CommunityPage';
+import InterviewCallPage from './pages/InterviewCallPage';
 
 
 /*
@@ -37,13 +37,21 @@ function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
-
+              
               {/* Protected Routes */}
               <Route
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
                     <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/interview-call"
+                element={
+                  <ProtectedRoute>
+                    <InterviewCallPage/>
                   </ProtectedRoute>
                 }
               />
@@ -68,14 +76,6 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <MatchAnalysisPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/interview"
-                element={
-                  <ProtectedRoute>
-                    <InterviewRoomPage />
                   </ProtectedRoute>
                 }
               />

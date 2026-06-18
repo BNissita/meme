@@ -70,7 +70,7 @@ const Navbar = () => {
                   <Zap className="h-4 w-4" />
                   Match Engine
                 </Link>
-                <Link to="/interview" className={linkClass('/interview')}>
+                <Link to="/interview-call" className={linkClass('/interview-call')}>
                   <Brain className="h-4 w-4" />
                   Mock Interview
                 </Link>
@@ -137,7 +137,7 @@ const Navbar = () => {
               <Link to="/resume" onClick={() => setIsOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800/40">Resume</Link>
               <Link to="/jd" onClick={() => setIsOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800/40">Job Description</Link>
               <Link to="/match" onClick={() => setIsOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800/40">Match Engine</Link>
-              <Link to="/interview" onClick={() => setIsOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800/40">Mock Interview</Link>
+              <Link to="/interview-call" onClick={() => setIsOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800/40">Mock Interview</Link>
               <Link to="/community" onClick={() => setIsOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800/40">Community</Link>
               <Link to="/profile" onClick={() => setIsOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800/40">Profile</Link>
               <button onClick={handleLogout} className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-rose-400 hover:bg-rose-500/10">Logout</button>

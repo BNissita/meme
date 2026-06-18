@@ -4,7 +4,9 @@ import { api } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Upload, FileText, CheckCircle, AlertCircle, Loader2, 
-  ArrowRight, Phone, Mail, User, Briefcase, Award 
+  ArrowRight, Phone, Mail, User, Briefcase, Award,  MoreVertical,
+  Pencil,
+  Trash2
 } from 'lucide-react';
 
 const ResumeUploadPage = () => {
@@ -13,6 +15,8 @@ const ResumeUploadPage = () => {
   const [loadingStep, setLoadingStep] = useState(0);
   const [error, setError] = useState('');
   const [resumeData, setResumeData] = useState(null);
+  const [resumeHistory, setResumeHistory] = useState([]);
+const [menuOpen, setMenuOpen] = useState(null);
   const navigate = useNavigate();
 
   const loadingSteps = [
@@ -34,6 +38,15 @@ const ResumeUploadPage = () => {
       .catch(err => {
         // Safe to ignore 404
       });
+      api.get('/resume/history')
+  .then(res => {
+
+    if (res.data.success) {
+      setResumeHistory(res.data.resumes);
+    }
+
+  })
+  .catch(console.error);
   }, []);
   useEffect(() => {
   console.log("resumeData changed:", resumeData);
@@ -51,6 +64,26 @@ const ResumeUploadPage = () => {
     }
     return () => clearInterval(interval);
   }, [loading]);
+
+  useEffect(() => {
+
+  const fetchResumeHistory = async () => {
+    try {
+
+      const res = await api.get("/resume/history");
+
+      if (res.data.success) {
+        setResumeHistory(res.data.resumes);
+      }
+
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  fetchResumeHistory();
+
+}, []);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -112,8 +145,19 @@ if (response.data.success) {
       <div className="absolute top-1/4 left-1/4 glow-dot-cyan w-[250px] h-[250px]"></div>
 
       <div className="space-y-2 relative z-10">
-        <h1 className="text-3xl font-extrabold text-white">Resume Upload & Parsing</h1>
-        <p className="text-slate-400 text-sm">Upload your PDF resume. Our AI parser will structure your profile details automatically.</p>
+        <div className="space-y-3">
+
+  <h1 className="text-5xl font-black text-white leading-tight">
+    <span className="block text-cyan-400">
+      Resume Upload & AI Analysis
+    </span>
+  </h1>
+
+  <p className="text-slate-400 max-w-2xl">
+    AI-powered ATS analysis, recruiter insights,
+    interview readiness scoring and profile intelligence.
+  </p>
+</div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative z-10">
@@ -204,18 +248,216 @@ if (response.data.success) {
               </motion.div>
             )}
           </AnimatePresence>
+          <div className="glass-panel p-4 rounded-2xl">
+
+  <h3 className="text-white font-bold mb-4">
+    Previous Resumes
+  </h3>
+
+  <div className="space-y-3 max-h-[350px] overflow-y-auto">
+
+    {resumeHistory.map((resume) => (
+
+      <button
+        key={resume._id}
+        onClick={() => setResumeData(resume)}
+        className={`w-full text-left p-3 rounded-xl border transition
+${
+  resumeData?._id === resume._id
+    ? 'border-cyan-400 bg-cyan-500/10'
+    : 'border-slate-800 bg-slate-950/20'
+}`}
+      >
+
+        <div
+  key={resume._id}
+  className={`
+    relative
+    p-3
+    rounded-xl
+    border
+    cursor-pointer
+    transition
+    ${
+      resumeData?._id === resume._id
+        ? 'border-cyan-400 bg-cyan-500/10'
+        : 'border-slate-800 bg-slate-950/20'
+    }
+  `}
+>
+
+  <div
+    onClick={() => setResumeData(resume)}
+  >
+
+    <p className="text-white text-xs font-semibold truncate">
+      {resume.fileName}
+    </p>
+
+    <p className="text-slate-500 text-[10px]">
+      Uploaded:
+      {" "}
+      {new Date(
+        resume.createdAt
+      ).toLocaleDateString()}
+    </p>
+
+    <p className="text-cyan-400 text-[10px] mt-1">
+      ATS:
+      {" "}
+      {resume.atsScore || 0}%
+    </p>
+
+  </div>
+
+  <button
+    onClick={() =>
+      setMenuOpen(
+        menuOpen === resume._id
+          ? null
+          : resume._id
+      )
+    }
+    className="absolute top-2 right-2"
+  >
+    <MoreVertical
+      size={16}
+      className="text-slate-400"
+    />
+  </button>
+
+  {menuOpen === resume._id && (
+
+    <div className="absolute right-2 top-8 z-50 bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-xl">
+
+      <button
+        className="flex items-center gap-2 px-4 py-2 text-xs hover:bg-slate-800 w-full"
+        onClick={async () => {
+
+          const newName =
+            prompt(
+              "Rename Resume",
+              resume.fileName
+            );
+
+          if (!newName) return;
+
+          const res =
+            await api.put(
+              `/resume/${resume._id}/rename`,
+              {
+                fileName: newName
+              }
+            );
+
+          setResumeHistory(
+            prev =>
+              prev.map(r =>
+                r._id === resume._id
+                  ? res.data.resume
+                  : r
+              )
+          );
+        }}
+      >
+        <Pencil size={14} />
+        Rename
+      </button>
+
+      <button
+        className="flex items-center gap-2 px-4 py-2 text-xs text-red-400 hover:bg-slate-800 w-full"
+        onClick={async () => {
+
+          const confirmDelete =
+            window.confirm(
+              "Delete this resume?"
+            );
+
+          if (!confirmDelete)
+            return;
+
+          await api.delete(
+            `/resume/${resume._id}`
+          );
+
+          setResumeHistory(
+            prev =>
+              prev.filter(
+                r =>
+                  r._id !==
+                  resume._id
+              )
+          );
+
+          if (
+            resumeData?._id ===
+            resume._id
+          ) {
+            setResumeData(null);
+          }
+        }}
+      >
+        <Trash2 size={14} />
+        Delete
+      </button>
         </div>
+       )}
+      </div>
+     </button>
+    ))}
+  </div>
+ </div>
+</div>
 
         {/* Display Parsed Data Column */}
-        <div className="lg:col-span-7">
-          {resumeData ? (
-            <motion.div 
+<div className="lg:col-span-7">
+  {resumeData ? (
+  <>
+    <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="glass-panel p-8 rounded-3xl space-y-6 relative overflow-hidden"
             >
               <div className="absolute top-0 right-0 p-6 text-emerald-500"><CheckCircle className="h-8 w-8" /></div>
-              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+
+  <div className="glass-panel p-4 rounded-xl text-center">
+    <h2 className="text-3xl font-black text-cyan-400">
+      {resumeData.atsScore || 0}
+    </h2>
+    <p className="text-xs text-slate-400">
+      ATS Score
+    </p>
+  </div>
+
+  <div className="glass-panel p-4 rounded-xl text-center">
+    <h2 className="text-3xl font-black text-white">
+      {resumeData.skills?.length || 0}
+    </h2>
+    <p className="text-xs text-slate-400">
+      Skills
+    </p>
+  </div>
+
+  <div className="glass-panel p-4 rounded-xl text-center">
+    <h2 className="text-3xl font-black text-white">
+      {resumeData.projects?.length || 0}
+    </h2>
+    <p className="text-xs text-slate-400">
+      Projects
+    </p>
+  </div>
+
+  <div className="glass-panel p-4 rounded-xl text-center">
+    <h2 className="text-3xl font-black text-white">
+      {resumeData.certifications?.length || 0}
+    </h2>
+    <p className="text-xs text-slate-400">
+      Certifications
+    </p>
+  </div>
+
+</div>
               {/* Header profile info */}
               <div className="space-y-3 pb-6 border-b border-slate-800">
                 <h2 className="text-2xl font-extrabold text-white flex items-center gap-2">
@@ -231,7 +473,31 @@ if (response.data.success) {
                   )}
                 </div>
               </div>
+              <div className="mb-6 rounded-3xl p-6 bg-gradient-to-r from-cyan-500/10 to-indigo-500/10 border border-cyan-500/20">
 
+  <div className="flex items-center gap-3 mb-4">
+
+    <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+      🤖
+    </div>
+
+    <div>
+      <h3 className="text-white font-bold">
+        AI Recruiter Verdict
+      </h3>
+
+      <p className="text-xs text-cyan-400">
+        Generated by AI Analysis
+      </p>
+    </div>
+
+  </div>
+
+  <p className="text-slate-300 text-sm leading-relaxed">
+    {resumeData.aiSummary}
+  </p>
+
+</div>
               {/* Summary */}
               {resumeData.summary && (
                 <div className="space-y-2">
@@ -318,7 +584,9 @@ if (response.data.success) {
                   </div>
                 )}
               </div>
+              <div className="mb-8">
 
+</div>
               {/* Proceed Button */}
               <div className="pt-6 flex justify-end">
                 <button
@@ -330,6 +598,7 @@ if (response.data.success) {
               </div>
 
             </motion.div>
+            </>
           ) : (
             <div className="glass-panel p-10 rounded-3xl text-center space-y-4 py-24 bg-slate-950/10">
               <FileText className="h-16 w-16 text-slate-700 mx-auto" />

@@ -1,8 +1,9 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const cookieParser = require('cookie-parser'); // 1. Added cookie-parser import
+const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
+const tavusRoutes = require("./routes/tavus");
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -20,11 +21,11 @@ const app = express();
 connectDB();
 
 // Middleware
-// 2 & 3. Configured CORS with credentials and added cookieParser middleware
 app.use(cors({
   origin: 'http://localhost:5173',
   credentials: true
 }));
+
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -67,8 +68,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/resume', resumeRoutes);
 app.use('/api/jd', jdRoutes);
 app.use('/api/match', matchRoutes);
-app.use('/api/interview', interviewRoutes);
+app.use('/api/interview-call', interviewRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+
+app.use("/api/tavus", tavusRoutes);
 
 // Global Error Handler Middleware
 app.use((err, req, res, next) => {
