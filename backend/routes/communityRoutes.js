@@ -4,7 +4,9 @@ const Post = require("../models/Post");
 const router = express.Router();
 
 /*
+  =========================================
   GET ALL POSTS
+  =========================================
 */
 router.get("/", async (req, res) => {
   try {
@@ -18,11 +20,14 @@ router.get("/", async (req, res) => {
 });
 
 /*
+  =========================================
   CREATE POST
+  =========================================
 */
 router.post("/", async (req, res) => {
   try {
     const { title, content, category, company, author } = req.body;
+    
     const newPost = await Post.create({
       title,
       content,
@@ -30,6 +35,7 @@ router.post("/", async (req, res) => {
       company,
       author
     });
+    
     res.status(201).json(newPost);
   } catch (error) {
     res.status(500).json({
@@ -39,7 +45,9 @@ router.post("/", async (req, res) => {
 });
 
 /*
+  =========================================
   DELETE POST
+  =========================================
 */
 router.delete("/:id", async (req, res) => {
   try {
@@ -55,10 +63,10 @@ router.delete("/:id", async (req, res) => {
 });
 
 /*
+  =========================================
   TOGGLE LIKE/UNLIKE POST
+  =========================================
 */
-console.log("=== DEBUG: LIKE ROUTE REGISTERED IN CODE ===");
-
 router.put("/:id/like", async (req, res) => {
   try {
     const { userId } = req.body;
@@ -75,7 +83,7 @@ router.put("/:id/like", async (req, res) => {
       });
     }
 
-    // Ensure likes array exists to prevent edge-case runtime crashes
+    // Safety fallback initialization
     if (!post.likes) {
       post.likes = [];
     }
@@ -85,14 +93,51 @@ router.put("/:id/like", async (req, res) => {
     );
 
     if (alreadyLiked) {
-      // Unlike logic
+      // Unlike logic: filter it out
       post.likes = post.likes.filter(
         (id) => id.toString() !== userId.toString()
       );
     } else {
-      // Like logic
+      // Like logic: push the id string
       post.likes.push(userId);
     }
+
+    await post.save();
+    res.json(post);
+
+  } catch (error) {
+    res.status(500).json({
+      message: error.message
+    });
+  }
+});
+
+/*
+  =========================================
+  ADD COMMENT TO POST
+  =========================================
+*/
+router.post("/:id/comment", async (req, res) => {
+  try {
+    const { userName, text } = req.body;
+
+    if (!text || !text.trim()) {
+      return res.status(400).json({ message: "Comment text cannot be empty." });
+    }
+
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({
+        message: "Post not found"
+      });
+    }
+
+    // Append the subdocument fields aligning with your Post model schema
+    post.comments.push({
+      text,
+      userName: userName || "Anonymous"
+    });
 
     await post.save();
     res.json(post);
