@@ -107,7 +107,7 @@ const InterviewCallPage = () => {
     }
 
     return (
-        return (
+
     <div className="fixed inset-0 bg-black flex flex-col z-50">
 
         <div className="h-16 px-6 flex items-center justify-between border-b border-slate-800 text-white">

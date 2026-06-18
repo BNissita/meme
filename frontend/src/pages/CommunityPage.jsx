@@ -1,13 +1,10 @@
 import React, { useState, useEffect, useContext } from "react";
-import { AuthContext } from "../context/AuthContext";
+import { AuthContext, api } from "../context/AuthContext"; // Import our configured api client
 
 export default function CommunityPage() {
-  // 1. Extracted user from AuthContext
   const { user } = useContext(AuthContext);
 
-  // DEBUG: Check what your context is actually emitting
-  console.log("Current AuthContext user:", user);
-
+  // Form States
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [showModal, setShowModal] = useState(false);
@@ -15,18 +12,19 @@ export default function CommunityPage() {
   const [newCompany, setNewCompany] = useState("");
   const [newCategory, setNewCategory] = useState("Interview Experience");
   const [newContent, setNewContent] = useState("");
+  const [newLink, setNewLink] = useState(""); // Added link state field
   const [expandedPost, setExpandedPost] = useState(null);
   const [commentText, setCommentText] = useState("");
   
-  // Fixed categories for a cleaner, professional forum look
-  const categories = ["All", "Interview Experience", "Preparation Help", "Resume Review", "Job Posting"];
+  // 1. Removed "Resume Review" from the categories array
+  const categories = ["All", "Interview Experience", "Preparation Help", "Job Posting"];
   const [discussions, setDiscussions] = useState([]);
 
+  // Fetch all posts using the secure api client
   useEffect(() => {
-    fetch("http://localhost:5050/api/community")
-      .then((res) => res.json())
-      .then((data) => {
-        setDiscussions(data);
+    api.get("/community")
+      .then((res) => {
+        setDiscussions(res.data);
       })
       .catch((err) => console.error(err));
   }, []);
@@ -42,35 +40,28 @@ export default function CommunityPage() {
     return matchesSearch && matchesCategory;
   });
 
+  // 4. Send link payload to the backend via api.post
   async function handleCreatePost() {
     if (!newTitle.trim() || !newContent.trim()) return;
 
     try {
-      const response = await fetch(
-        "http://localhost:5050/api/community",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            title: newTitle,
-            content: newContent,
-            category: newCategory,
-            company: newCompany || "General",
-            author: user?.name || "Anonymous"
-          })
-        }
-      );
+      const response = await api.post("/community", {
+        title: newTitle,
+        content: newContent,
+        category: newCategory,
+        company: newCompany || "General",
+        author: user?.name || "Anonymous",
+        link: newLink // Added link variable
+      });
 
-      const newPost = await response.json();
+      setDiscussions((prev) => [response.data, ...prev]);
 
-      setDiscussions((prev) => [newPost, ...prev]);
-
+      // Reset Form States
       setNewTitle("");
       setNewCompany("");
       setNewCategory("Interview Experience");
       setNewContent("");
+      setNewLink(""); // Reset link
       setShowModal(false);
     } catch (error) {
       console.error(error);
@@ -81,26 +72,13 @@ export default function CommunityPage() {
     if (!commentText.trim()) return;
 
     try {
-      const response = await fetch(
-        `http://localhost:5050/api/community/${postId}/comment`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            userName: user?.name || "Anonymous",
-            text: commentText
-          })
-        }
-      );
-
-      const updatedPost = await response.json();
+      const response = await api.post(`/community/${postId}/comment`, {
+        userName: user?.name || "Anonymous",
+        text: commentText
+      });
 
       setDiscussions((prev) =>
-        prev.map((post) =>
-          post._id === postId ? updatedPost : post
-        )
+        prev.map((post) => (post._id === postId ? response.data : post))
       );
 
       setCommentText("");
@@ -109,34 +87,35 @@ export default function CommunityPage() {
     }
   }
 
-  // Toggle Like Engine: Handles both Like & Unlike updates
   async function handleLike(postId) {
-    if (!user || !user._id) {
+    // Note: If you switched to reading cookies for user authorization inside the backend 
+    // like/unlike controllers too, sending userId explicitly might no longer even be necessary!
+    if (!user) {
       alert("You must be logged in to like a post!");
       return;
     }
 
     try {
-      const response = await fetch(
-        `http://localhost:5050/api/community/${postId}/like`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            userId: user._id
-          })
-        }
-      );
-
-      const updatedPost = await response.json();
+      const response = await api.put(`/community/${postId}/like`, {
+        userId: user._id
+      });
 
       setDiscussions((prev) =>
-        prev.map((post) =>
-          post._id === postId ? updatedPost : post
-        )
+        prev.map((post) => (post._id === postId ? response.data : post))
       );
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function handleDelete(postId) {
+    if (!window.confirm("Are you sure you want to delete this post?")) {
+      return;
+    }
+
+    try {
+      await api.delete(`/community/${postId}`);
+      setDiscussions((prev) => prev.filter((post) => post._id !== postId));
     } catch (error) {
       console.error(error);
     }
@@ -153,7 +132,7 @@ export default function CommunityPage() {
               Community Hub
             </h1>
             <p className="text-gray-400 mt-3">
-              Share interview experiences, get resume reviews, and accelerate your preparation.
+              Share interview experiences and accelerate your preparation.
             </p>
           </div>
 
@@ -222,7 +201,6 @@ export default function CommunityPage() {
                   <span className="text-gray-400 text-sm block font-medium">
                     {post.author || "Anonymous"}
                   </span>
-
                   <span className="text-gray-600 text-xs block">
                     {new Date(post.createdAt).toLocaleDateString()} •{" "}
                     {new Date(post.createdAt).toLocaleTimeString()}
@@ -238,6 +216,20 @@ export default function CommunityPage() {
                 {post.content}
               </p>
 
+              {/* 5. Show clickable link if available in the database */}
+              {post.link && (
+                <div className="mt-3">
+                  <a
+                    href={post.link.startsWith("http") ? post.link : `https://${post.link}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-cyan-400 hover:underline text-sm inline-flex items-center gap-1 font-medium"
+                  >
+                    🔗 External Reference Link
+                  </a>
+                </div>
+              )}
+
               {/* Action Buttons Section */}
               <div className="mt-5 flex gap-6 text-sm font-medium border-t border-slate-800/60 pt-4">
                 <button
@@ -252,9 +244,7 @@ export default function CommunityPage() {
                 </button>
                 <button
                   onClick={() =>
-                    setExpandedPost(
-                      expandedPost === post._id ? null : post._id
-                    )
+                    setExpandedPost(expandedPost === post._id ? null : post._id)
                   }
                   className="flex items-center gap-1.5 text-gray-500 hover:text-cyan-400 transition"
                 >
@@ -262,7 +252,18 @@ export default function CommunityPage() {
                 </button>
               </div>
 
-              {/* Collapsible Comments UI Section - Safely placed inside the post container card */}
+              <div className="flex justify-end mt-3">
+                {user?.name === post.author && (
+                  <button
+                    onClick={() => handleDelete(post._id)}
+                    className="text-red-400 hover:text-red-300 text-sm transition"
+                  >
+                    🗑 Delete
+                  </button>
+                )}
+              </div>
+
+              {/* Collapsible Comments UI Section */}
               {expandedPost === post._id && (
                 <div className="mt-4 border-t border-slate-800 pt-4">
                   {(post.comments || []).length === 0 ? (
@@ -293,7 +294,6 @@ export default function CommunityPage() {
                       placeholder="Write a comment..."
                       className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-cyan-500 text-white transition"
                     />
-
                     <button
                       onClick={() => handleComment(post._id)}
                       className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 font-medium rounded-xl text-sm transition"
@@ -306,7 +306,6 @@ export default function CommunityPage() {
             </div>
           ))}
         </div>
-
       </div>
 
       {/* Creation Modal */}
@@ -342,6 +341,22 @@ export default function CommunityPage() {
                 ))}
               </select>
             </div>
+
+            {/* 2. Added link input element right below the grid */}
+           {(newCategory === "Preparation Help" ||
+  newCategory === "Job Posting") && (
+  <input
+    type="text"
+    placeholder={
+      newCategory === "Job Posting"
+        ? "Paste Job Application Link"
+        : "Paste Learning Resource Link"
+    }
+    value={newLink}
+    onChange={(e) => setNewLink(e.target.value)}
+    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 mb-3 focus:outline-none focus:border-cyan-500"
+  />
+)}
 
             <textarea
               placeholder="Share details, questions, or roadmaps with the community..."

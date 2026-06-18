@@ -88,7 +88,7 @@ router.post('/upload', protect, upload.single('jdFile'), async (req, res) => {
     // Call Gemini AI service to parse JD details
     const parsedJD = await aiService.analyzeJD(extractedText);
 
-    const jdData = {
+    const content = {
       userId: req.user._id,
       title: parsedJD.title || 'Untitled Position',
       company: parsedJD.company || '',

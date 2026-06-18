@@ -26,14 +26,15 @@ router.get("/", async (req, res) => {
 */
 router.post("/", async (req, res) => {
   try {
-    const { title, content, category, company, author } = req.body;
+    const { title, content, category, company, author ,link } = req.body;
     
     const newPost = await Post.create({
       title,
       content,
       category,
       company,
-      author
+      author,
+      link
     });
     
     res.status(201).json(newPost);

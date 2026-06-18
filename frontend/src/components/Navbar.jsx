@@ -81,23 +81,7 @@ const Navbar = () => {
                 
                 {/* Profile and Logout */}
                 <div className="flex items-center gap-2 pl-4 border-l border-slate-700 ml-2">
-                  <button
-                    onClick={() => setDarkMode(!darkMode)}
-                    className="
-                      p-2 rounded-full
-                      text-slate-300
-                      hover:text-white
-                      hover:bg-slate-800/40
-                      transition-all duration-300
-                    "
-                    title="Toggle Theme"
-                  >
-                    {darkMode ? (
-                      <Sun className="h-4 w-4 text-yellow-400" />
-                    ) : (
-                      <Moon className="h-4 w-4 text-cyan-400" />
-                    )}
-                  </button>
+                  
                   <Link to="/profile" className={`p-2 rounded-full text-slate-300 hover:text-white hover:bg-slate-800/40 ${isActive('/profile') ? 'text-cyan-400' : ''}`} title="Profile">
                     <User className="h-4 w-4" />
                   </Link>
