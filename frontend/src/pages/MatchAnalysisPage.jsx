@@ -39,7 +39,7 @@ const MatchAnalysisPage = () => {
       setLoading(true);
       const res = await api.post('/interview/start', { demoMode: true });
       if (res.data.success) {
-        navigate('/interview');
+        navigate('/interview-call');
       }
     } catch (err) {
       console.error(err);

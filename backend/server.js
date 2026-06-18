@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
-
+const tavusRoutes = require("./routes/tavus");
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -12,6 +12,7 @@ const matchRoutes = require('./routes/match');
 const interviewRoutes = require('./routes/interview');
 const dashboardRoutes = require('./routes/dashboard');
 const communityRoutes = require("./routes/communityRoutes");
+
 
 // Initialize app
 const app = express();
@@ -24,6 +25,7 @@ app.use(cors()); // Allow all cross-origins for seamless hackathon integrations
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/api/community", communityRoutes);
+
 app.get('/test-gemini', async (req, res) => {
   try {
     const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -58,8 +60,11 @@ app.use('/api/auth', authRoutes);
 app.use('/api/resume', resumeRoutes);
 app.use('/api/jd', jdRoutes);
 app.use('/api/match', matchRoutes);
-app.use('/api/interview', interviewRoutes);
+app.use('/api/interview-call', interviewRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+// app.use("/api/livekit", require("./routes/livekit"));
+// app.use("/api/recording", require("./routes/recording"));
+app.use("/api/tavus", require("./routes/tavus"));
 
 // Global Error Handler Middleware
 app.use((err, req, res, next) => {

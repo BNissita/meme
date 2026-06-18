@@ -1,12 +1,19 @@
+console.log(__filename);
 const express = require('express');
 const router = express.Router();
+router.get("/ping", (req, res) => {
+  res.json({
+    success: true,
+    message: "Interview route working"
+  });
+});
 const { protect } = require('../middleware/auth');
 const Interview = require('../models/Interview');
 const Report = require('../models/Report');
 const Resume = require('../models/Resume');
 const JobDescription = require('../models/JobDescription');
 const aiService = require('../services/aiService');
-
+console.log("Interview routes loaded");
 // @route   POST /api/interview/start
 // @desc    Start a new mock interview
 

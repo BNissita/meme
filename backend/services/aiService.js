@@ -367,11 +367,10 @@ const generateInterviewQuestions = async (resume, jd) => {
     const parsed = parseJSONResponse(resultText, null);
     if (parsed && Array.isArray(parsed.questions) && parsed.questions.length > 0) {
       return parsed.questions;
-    }
-    return getMockQuestions(resume, jd);
+    }throw new Error("Question generation failed");
   } catch (error) {
     console.error("Gemini generateInterviewQuestions error, falling back to mock:", error);
-    return getMockQuestions(resume, jd);
+    throw new Error("Question generation failed");
   }
 };
 
