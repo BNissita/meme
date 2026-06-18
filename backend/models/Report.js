@@ -23,7 +23,81 @@ const ReportSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  title: {
+    type: String,
+    default: "Interview Report"
+  },
+
+  executiveSummary: {
+    type: String,
+    default: ""
+  },
+
+  confidenceScore: {
+    type: Number,
+    default: 0
+  },
+
+  behavioralScore: {
+    type: Number,
+    default: 0
+  },
+
+  jdMatchScore: {
+    type: Number,
+    default: 0
+  },
+
+  appearanceAnalysis: {
+    type: String,
+    default: ""
+  },
+
+  behavioralAnalysis: {
+    type: String,
+    default: ""
+  },
+
+  emotionalAnalysis: {
+    type: String,
+    default: ""
+  },
+
+  hireRecommendation: {
+    type: String,
+    default: ""
+  },
+
+  topPositiveMoment: {
+    type: String,
+    default: ""
+  },
+
+  topImprovementMoment: {
+    type: String,
+    default: ""
+  },
+
+  transcript: {
+    type: [mongoose.Schema.Types.Mixed],
+    default: []
+  },
+
+  perceptionAnalysis: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  },
+  whatWentWell: {
+    type: [String],
+    default: []
+  },
+
+  whatHurtScore: {
+    type: [String],
+    default: []
   }
-});
+}
+);
 
 module.exports = mongoose.model('Report', ReportSchema);

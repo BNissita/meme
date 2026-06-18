@@ -13,13 +13,10 @@ const parseJSONResponse = (text, fallback) => {
   try {
     let cleaned = text.trim();
 
-    if (cleaned.startsWith("```json")) {
-      cleaned = cleaned.replace(/^```json\s*/, "");
-    }
+    cleaned = cleaned.replace(/^```(?:json)?\s*/, "");
+    cleaned = cleaned.replace(/\s*```$/, "");
 
-    if (cleaned.endsWith("```")) {
-      cleaned = cleaned.replace(/\s*```$/, "");
-    }
+
 
     cleaned = cleaned.trim();
 
@@ -137,20 +134,34 @@ Keep it professional and concise.
     Resume Text:
     ${text}
   `;
-  
+
   try {
+
     const resultText = await callGroq(prompt);
-    return parseJSONResponse(resultText, getMockResumeAnalysis(text));
+
+    console.log("RAW GROQ RESPONSE:");
+    console.log(resultText);
+
+    return parseJSONResponse(
+      resultText,
+      getMockResumeAnalysis(text)
+    );
+
   } catch (error) {
-    console.error("Groq analyzeResume error:", error);
+
+    console.error(
+      "Groq analyzeResume error:",
+      error
+    );
+
     return getMockResumeAnalysis(text);
   }
 };
 
 const generateResumeInsights =
-async (resume) => {
+  async (resume) => {
 
-const prompt = `
+    const prompt = `
 You are an expert recruiter.
 
 Analyze this resume.
@@ -169,11 +180,35 @@ Resume:
 ${JSON.stringify(resume)}
 `;
 
-const result =
-await callGroq(prompt);
+    try {
 
-return parseJSONResponse(result);
-};
+      const result =
+        await callGroq(prompt);
+
+      return parseJSONResponse(result, {
+        atsScore: 0,
+        interviewReadiness: 0,
+        summary: "",
+        strengths: [],
+        weaknesses: []
+      });
+
+    } catch (error) {
+
+      console.error(
+        "Groq generateResumeInsights error:",
+        error
+      );
+
+      return {
+        atsScore: 0,
+        interviewReadiness: 0,
+        summary: "",
+        strengths: [],
+        weaknesses: []
+      };
+    }
+  };
 
 /**
  * 2. Analyze Job Description Text
@@ -254,31 +289,31 @@ Return ONLY valid JSON:
 
 Resume:
 ${JSON.stringify({
-  name: resume.name,
-  skills: resume.skills,
-  projects: resume.projects,
-  experience: resume.experience,
-  education: resume.education,
-  certifications: resume.certifications
-})}
+    name: resume.name,
+    skills: resume.skills,
+    projects: resume.projects,
+    experience: resume.experience,
+    education: resume.education,
+    certifications: resume.certifications
+  })}
 
 Job Description:
 ${JSON.stringify({
-  title: jd.title,
-  requiredSkills: jd.requiredSkills,
-  technologies: jd.technologies,
-  experienceRequirements: jd.experienceRequirements
-})}
+    title: jd.title,
+    requiredSkills: jd.requiredSkills,
+    technologies: jd.technologies,
+    experienceRequirements: jd.experienceRequirements
+  })}
 `;
 
   try {
-  const resultText = await callGroq(prompt);
+    const resultText = await callGroq(prompt);
 
-  console.log("MATCH RAW RESPONSE:");
-  console.log(resultText);
+    console.log("MATCH RAW RESPONSE:");
+    console.log(resultText);
 
-  return parseJSONResponse(resultText, getMockMatch(resume, jd));
-} catch (error) {
+    return parseJSONResponse(resultText, getMockMatch(resume, jd));
+  } catch (error) {
     console.error("Gemini matchResumeJD error, falling back to mock:", error);
     return getMockMatch(resume, jd);
   }
@@ -333,7 +368,7 @@ Instead:
  * 5. Generate Interview Questions (10-15)
  */
 const generateInterviewQuestions = async (resume, jd) => {
-  
+
   const prompt = `
     Generate 10 to 12 highly relevant and challenging interview questions for a mock interview.
     The candidate's resume and target Job Description are provided below.
@@ -367,7 +402,7 @@ const generateInterviewQuestions = async (resume, jd) => {
     const parsed = parseJSONResponse(resultText, null);
     if (parsed && Array.isArray(parsed.questions) && parsed.questions.length > 0) {
       return parsed.questions;
-    }throw new Error("Question generation failed");
+    } throw new Error("Question generation failed");
   } catch (error) {
     console.error("Gemini generateInterviewQuestions error, falling back to mock:", error);
     throw new Error("Question generation failed");
@@ -378,7 +413,7 @@ const generateInterviewQuestions = async (resume, jd) => {
  * 6. Evaluate Candidate's Answer
  */
 const evaluateAnswer = async (question, answer, resume, jd) => {
-  
+
   const prompt = `
     You are an expert tech recruiter. Evaluate the candidate's answer to the interview question below.
     Provide constructive feedback and granular scores out of 10.
@@ -416,7 +451,7 @@ const evaluateAnswer = async (question, answer, resume, jd) => {
  * 7. Generate Final Interview Report
  */
 const generateFinalReport = async (questions, answers) => {
-  
+
   const prompt = `
     Analyze the candidate's performance across the entire mock interview session.
     A list of questions, candidate answers, and individual evaluations are provided.
@@ -424,12 +459,12 @@ const generateFinalReport = async (questions, answers) => {
     
     Interview Details:
     ${JSON.stringify(answers.map(a => ({
-      question: a.question,
-      type: a.type,
-      answer: a.answer,
-      score: a.evaluation?.score,
-      feedback: a.evaluation?.feedback
-    })))}
+    question: a.question,
+    type: a.type,
+    answer: a.answer,
+    score: a.evaluation?.score,
+    feedback: a.evaluation?.feedback
+  })))}
 
     Return a JSON object matching this schema:
     {
@@ -462,6 +497,205 @@ const generateFinalReport = async (questions, answers) => {
   }
 };
 
+const generateTavusReport = async (
+  resume,
+  jd,
+  transcript,
+  perceptionAnalysis
+) => {
+
+  const cleanTranscript = transcript
+    .filter(
+      item =>
+        item.role === "assistant" ||
+        item.role === "user"
+    )
+    .map(item => ({
+      role: item.role,
+      content: item.content
+    }));
+
+  const prompt = `
+You are an expert technical interviewer.
+
+Your task is to evaluate THIS interview session.
+
+IMPORTANT RULES:
+
+1. Base the report primarily on the interview transcript.
+2. Use the resume only for validation and context.
+3. Use the job description only for role alignment.
+4. Do NOT invent experiences, skills, strengths, or weaknesses.
+5. If something was not discussed in the interview, say so.
+6. Reference actual answers from the transcript.
+7. Feedback must be specific and personalized.
+8. Avoid generic statements.
+9. Explain WHY each score was given.
+
+Return ONLY valid JSON.
+
+{
+  "title": "",
+  "executiveSummary": "",
+
+  "overallScore": 0,
+  "technicalScore": 0,
+  "communicationScore": 0,
+  "problemSolvingScore": 0,
+
+  "confidenceScore": 0,
+  "behavioralScore": 0,
+  "jdMatchScore": 0,
+
+  "strengths": [],
+  "weaknesses": [],
+
+  "missedConcepts": [],
+  "recommendedTopics": [],
+
+  "whatWentWell": [],
+  "whatHurtScore": [],
+
+  "appearanceAnalysis": "",
+  "behavioralAnalysis": "",
+  "emotionalAnalysis": "",
+
+  "hireRecommendation": "",
+
+  "topPositiveMoment": "",
+  "topImprovementMoment": "",
+
+  "improvementPlan": ""
+}
+
+SCORING GUIDELINES
+
+Technical Score:
+- Accuracy of technical answers
+- Depth of explanation
+- Understanding of implementation details
+
+Communication Score:
+- Clarity
+- Structure
+- Conciseness
+- Ability to explain ideas
+
+Problem Solving Score:
+- Debugging approach
+- Reasoning
+- Decision making
+
+For strengths:
+Mention specific moments from the interview.
+
+For weaknesses:
+Mention specific moments from the interview.
+
+For whatWentWell:
+Give 3-5 personalized observations.
+
+For whatHurtScore:
+Give 3-5 personalized observations.
+
+For topPositiveMoment:
+Describe the strongest answer and why it was strong.
+
+For topImprovementMoment:
+Describe the weakest answer and how it could be improved.
+
+For improvementPlan:
+Give specific actionable advice based on THIS interview.
+
+Resume:
+${JSON.stringify(resume)}
+
+Job Description:
+${JSON.stringify(jd)}
+
+Transcript:
+${JSON.stringify(cleanTranscript)}
+
+Perception Analysis:
+${JSON.stringify(perceptionAnalysis)}
+`;
+
+  try {
+
+    const result =
+      await callGroq(prompt);
+
+    return parseJSONResponse(result, {
+      title: jd?.title || "Interview Report",
+
+      executiveSummary:
+        "Unable to generate report.",
+
+      overallScore: 0,
+
+      technicalScore: 0,
+      communicationScore: 0,
+      problemSolvingScore: 0,
+
+      confidenceScore: 0,
+      behavioralScore: 0,
+      jdMatchScore: 0,
+
+      strengths: [],
+      weaknesses: [],
+
+      missedConcepts: [],
+      recommendedTopics: [],
+      whatWentWell: [],
+      whatHurtScore: [],
+
+      appearanceAnalysis: "",
+      behavioralAnalysis: "",
+      emotionalAnalysis: "",
+
+      improvementPlan: ""
+    });
+
+  } catch (error) {
+
+    console.error(
+      "Groq generateTavusReport error:",
+      error
+    );
+
+    return {
+      title: jd?.title || "Interview Report",
+
+      executiveSummary:
+        "Unable to generate report.",
+
+      overallScore: 0,
+
+      technicalScore: 0,
+      communicationScore: 0,
+      problemSolvingScore: 0,
+
+      confidenceScore: 0,
+      behavioralScore: 0,
+      jdMatchScore: 0,
+
+      strengths: [],
+      weaknesses: [],
+
+      missedConcepts: [],
+      recommendedTopics: [],
+      whatWentWell: [],
+      whatHurtScore: [],
+
+      appearanceAnalysis: "",
+      behavioralAnalysis: "",
+      emotionalAnalysis: "",
+
+      improvementPlan: ""
+    };
+  }
+};
+
 // ==========================================
 // HIGH FIDELITY MOCK FALLBACK DATA GENERATORS
 // ==========================================
@@ -469,7 +703,7 @@ const generateFinalReport = async (questions, answers) => {
 function getMockResumeAnalysis(text) {
   // Simple heuristic parsing for mock responses
   const cleanText = text.toLowerCase();
-  
+
   // Detect skills
   const skillsList = ['react', 'node.js', 'mongodb', 'express', 'javascript', 'typescript', 'html', 'css', 'python', 'java', 'c++', 'aws', 'docker', 'kubernetes', 'git', 'sql', 'next.js', 'redux', 'graphql', 'tailwind'];
   const skills = skillsList.filter(s => cleanText.includes(s));
@@ -486,7 +720,7 @@ function getMockResumeAnalysis(text) {
   let name = "Alex Mercer";
   let email = "alex.mercer@gmail.com";
   let phone = "+1 (555) 019-2834";
-  
+
   const emailRegex = /[\w.-]+@[\w.-]+\.\w+/;
   const matchEmail = text.match(emailRegex);
   if (matchEmail) email = matchEmail[0];
@@ -550,14 +784,14 @@ function getMockResumeAnalysis(text) {
 
 function getMockJDAnalysis(text) {
   const cleanText = text.toLowerCase();
-  
+
   // Job title heuristic
   let title = "Full Stack Developer";
   if (cleanText.includes("frontend")) title = "Frontend Engineer";
   else if (cleanText.includes("backend")) title = "Backend Engineer";
   else if (cleanText.includes("senior")) title = "Senior Full Stack Developer";
   else if (cleanText.includes("intern")) title = "Software Engineering Intern";
-  
+
   let company = "InnovateTech Inc.";
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   if (lines.length > 1 && lines[0].toLowerCase().includes("job") && lines[1].length < 30) {
@@ -590,7 +824,7 @@ function getMockJDAnalysis(text) {
 function getMockMatch(resume, jd) {
   const resumeSkillsSet = new Set((resume.skills || []).map(s => s.toLowerCase()));
   const jdSkills = jd.requiredSkills || ['react', 'node.js', 'mongodb', 'express', 'docker', 'aws'];
-  
+
   const matchedSkills = [];
   const missingSkills = [];
 
@@ -638,7 +872,7 @@ function getMockATS(resume, jd) {
   const formattingScore = 85; // Standard sections found
   const actionVerbsScore = 70; // Hardcoded standard
   const readabilityScore = 80;
-  
+
   const atsScore = Math.round((keywordMatchScore * 0.4) + (formattingScore * 0.2) + (actionVerbsScore * 0.2) + (readabilityScore * 0.2));
 
   return {
@@ -715,7 +949,7 @@ function getMockQuestions(resume, jd) {
 
 function getMockAnswerEvaluation(question, answer) {
   const wordsCount = answer.trim().split(/\s+/).length;
-  
+
   let score = 5;
   let feedback = "Your answer was received, but was extremely short. Please try to provide more detail, using the STAR method for behavioral questions or technical examples for conceptual questions.";
   let suggestions = "Explain key terminologies, give a real-world project example, and structure your answer with a beginning, middle, and end.";
@@ -736,7 +970,7 @@ function getMockAnswerEvaluation(question, answer) {
   const communication = Math.min(10, Math.round(score + 0.5));
   const completeness = Math.min(10, Math.round(score - 0.5));
   const confidence = Math.min(10, Math.round(score + 1.2));
-  
+
   const finalScore = Number(((relevance + accuracy + communication + completeness + confidence) / 5).toFixed(1));
 
   return {
@@ -761,7 +995,7 @@ function getMockFinalReport(questions, answers) {
   answers.forEach(a => {
     const evalScore = a.evaluation?.score || 7.0;
     totalScore += evalScore;
-    
+
     if (a.type === 'Technical') {
       techTotal += evalScore;
       techCount++;
@@ -837,5 +1071,6 @@ module.exports = {
   generateInterviewQuestions,
   evaluateAnswer,
   generateFinalReport,
-  generateResumeInsights
+  generateResumeInsights,
+  generateTavusReport
 };

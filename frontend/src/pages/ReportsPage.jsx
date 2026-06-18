@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../context/AuthContext';
 import { motion } from 'framer-motion';
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
-import { 
-  Trophy, CheckCircle, AlertTriangle, ShieldCheck, 
-  ArrowLeft, FileText, Calendar, Sparkles, BookOpen 
+import {
+  Trophy, CheckCircle, AlertTriangle, ShieldCheck,
+  ArrowLeft, FileText, Calendar, Sparkles, BookOpen
 } from 'lucide-react';
 
 const ReportsPage = () => {
@@ -13,6 +15,44 @@ const ReportsPage = () => {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const downloadPDF = async () => {
+
+    const reportElement =
+      document.getElementById(
+        "report-content"
+      );
+
+    const canvas =
+      await html2canvas(reportElement, {
+        scale: 2
+      });
+
+    const imgData =
+      canvas.toDataURL("image/png");
+
+    const pdf =
+      new jsPDF("p", "mm", "a4");
+
+    const width =
+      pdf.internal.pageSize.getWidth();
+
+    const height =
+      (canvas.height * width) /
+      canvas.width;
+
+    pdf.addImage(
+      imgData,
+      "PNG",
+      0,
+      0,
+      width,
+      height
+    );
+
+    pdf.save(
+      "HireMe-AI-Report.pdf"
+    );
+  };
 
   useEffect(() => {
     fetchReport();
@@ -22,7 +62,7 @@ const ReportsPage = () => {
     try {
       setLoading(true);
       setError('');
-      const res = await api.get(`/interview/reports/${id}`);
+      const res = await api.get(`/tavus/report/${id}`);
       if (res.data.success) {
         setReport(res.data.report);
       }
@@ -67,7 +107,10 @@ const ReportsPage = () => {
   ];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-10 space-y-8 relative">
+    <div
+      id="report-content"
+      className="max-w-6xl mx-auto px-4 py-10 space-y-8 relative"
+    >
       <div className="absolute top-1/4 right-1/4 glow-dot-cyan w-[250px] h-[250px]"></div>
 
       {/* Back button and title */}
@@ -79,28 +122,60 @@ const ReportsPage = () => {
           <div>
             <h1 className="text-3xl font-extrabold text-white">Interview Assessment Report</h1>
             <p className="text-slate-400 text-xs mt-1">
-  Generated on {new Date(report.createdAt).toLocaleString('en-US', {
-    dateStyle: 'long',
-    timeStyle: 'short'
-  })}
-</p>
+              Generated on {new Date(report.createdAt).toLocaleString('en-US', {
+                dateStyle: 'long',
+                timeStyle: 'short'
+              })}
+            </p>
+
           </div>
-          <span className="inline-flex items-center px-4 py-2 rounded-xl text-sm font-extrabold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-glow-cyan">
-            {report.overallScore}% Overall Score
-          </span>
+
+          <div className="flex items-center gap-3">
+
+            <span className="inline-flex items-center px-4 py-2 rounded-xl text-sm font-extrabold bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shadow-glow-cyan">
+              {report.overallScore}% Overall Score
+            </span>
+
+            <button
+              onClick={downloadPDF}
+              className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-bold transition"
+            >
+              Download PDF
+            </button>
+
+          </div>
+
+        </div>
+        {/* Back button and title */}
+        <div className="space-y-4 relative z-10">
+          <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white font-semibold transition">
+            <ArrowLeft className="h-4 w-4" /> Back to Dashboard
+          </Link>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+
+            <div className="glass-panel p-6 rounded-3xl relative z-10">
+              <h3 className="text-lg font-bold text-white mb-3">
+                Interview Summary
+              </h3>
+
+              <p className="text-slate-300 leading-relaxed">
+                {report.executiveSummary}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Analytics scorecard row */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-stretch relative z-10">
-        
+
         {/* Radar chart visual */}
         <div className="md:col-span-5 glass-panel p-6 rounded-3xl flex flex-col items-center justify-center space-y-4">
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
             <Trophy className="h-4.5 w-4.5 text-yellow-400" />
             Capabilities Scorecard
           </h3>
-          
+
           <div className="w-full h-64 flex justify-center">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
@@ -150,7 +225,7 @@ const ReportsPage = () => {
 
       {/* Observations Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
-        
+
         {/* Strengths & Weaknesses */}
         <div className="glass-panel p-8 rounded-3xl space-y-6">
           {/* Strengths */}
@@ -195,7 +270,7 @@ const ReportsPage = () => {
               Missed Key Concepts
             </h3>
             <div className="flex flex-wrap gap-2">
-              {(report.missedConcepts || [] ).map((con, idx) => (
+              {(report.missedConcepts || []).map((con, idx) => (
                 <span key={idx} className="px-3 py-1 rounded-full text-xs bg-rose-500/5 border border-rose-500/15 text-rose-400 font-semibold">
                   {con}
                 </span>
@@ -226,6 +301,29 @@ const ReportsPage = () => {
       </div>
 
       {/* Study Plan Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+        <div className="glass-panel p-8 rounded-3xl">
+          <h3 className="text-sm font-bold text-cyan-400 uppercase tracking-wider mb-4">
+            Strongest Moment
+          </h3>
+
+          <p className="text-slate-300 leading-relaxed">
+            {report.topPositiveMoment}
+          </p>
+        </div>
+
+        <div className="glass-panel p-8 rounded-3xl">
+          <h3 className="text-sm font-bold text-amber-400 uppercase tracking-wider mb-4">
+            Biggest Improvement Opportunity
+          </h3>
+
+          <p className="text-slate-300 leading-relaxed">
+            {report.topImprovementMoment}
+          </p>
+        </div>
+
+      </div>
       {report.improvementPlan && (
         <div className="glass-panel p-8 md:p-12 rounded-3xl relative z-10 space-y-6">
           <h3 className="text-lg font-bold text-white flex items-center gap-2 pb-4 border-b border-slate-800">

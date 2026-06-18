@@ -53,19 +53,24 @@ const InterviewSchema = new mongoose.Schema({
     default: 0
   },
   tavusConversationId: {
-  type: String,
-  default: null
-},
+    type: String,
+    default: null
+  },
 
-tavusConversationUrl: {
-  type: String,
-  default: null
-},
+  tavusConversationUrl: {
+    type: String,
+    default: null
+  },
 
-transcript: {
-  type: String,
-  default: ""
-},
+  transcript: {
+    type: [mongoose.Schema.Types.Mixed],
+    default: []
+  },
+
+  perceptionAnalysis: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now

@@ -1,10 +1,55 @@
 import React, { useEffect, useState } from "react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { useNavigate } from "react-router-dom";
 import { api } from "../context/AuthContext";
 
 const InterviewCallPage = () => {
     const [tavusUrl, setTavusUrl] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const downloadPDF = async () => {
+
+        const reportElement =
+            document.getElementById(
+                "report-content"
+            );
+
+        const canvas =
+            await html2canvas(reportElement, {
+                scale: 2
+            });
+
+        const imgData =
+            canvas.toDataURL("image/png");
+
+        const pdf =
+            new jsPDF("p", "mm", "a4");
+
+        const width =
+            pdf.internal.pageSize.getWidth();
+
+        const height =
+            (canvas.height * width) /
+            canvas.width;
+
+        pdf.addImage(
+            imgData,
+            "PNG",
+            0,
+            0,
+            width,
+            height
+        );
+
+        pdf.save(
+            "HireMe-AI-Report.pdf"
+        );
+    };
+    const [conversationId, setConversationId] = useState(null);
+    const [generating, setGenerating] = useState(false);
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         createConversation();
@@ -18,20 +63,57 @@ const InterviewCallPage = () => {
                 "/tavus/create-conversation"
             );
 
-            console.log("Tavus Response:", res.data);
-
             setTavusUrl(res.data.conversationUrl);
+            setConversationId(res.data.conversationId);
         } catch (err) {
-            console.error(err);
-
-            setError(
+            const errorMessage =
                 err.response?.data?.error ||
                 err.message ||
-                "Failed to create interview"
-            );
+                "Failed to create interview";
+
+            if (errorMessage === "Resume required") {
+                navigate("/resume-upload");
+                return;
+            }
+
+            if (errorMessage === "Job Description required") {
+                navigate("/jd-upload");
+                return;
+            }
+
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
+    };
+    const endInterview = async () => {
+
+        setGenerating(true);
+
+        setTimeout(async () => {
+
+            try {
+
+                const res = await api.post(
+                    `/tavus/finalize/${conversationId}`
+                );
+
+                navigate(
+                    `/reports/${res.data.reportId}`
+                );
+
+            } catch (err) {
+
+                console.error(err);
+
+                alert(
+                    "Failed to generate report"
+                );
+
+                setGenerating(false);
+            }
+
+        }, 30000);
     };
 
     if (loading) {
@@ -42,6 +124,30 @@ const InterviewCallPage = () => {
         );
     }
 
+    if (generating) {
+
+        return (
+
+            <div className="h-screen bg-black flex flex-col items-center justify-center text-white">
+
+                <div className="animate-spin rounded-full h-20 w-20 border-b-2 border-cyan-500"></div>
+
+                <h2 className="mt-6 text-2xl font-bold">
+                    Generating Interview Report
+                </h2>
+
+                <p className="text-slate-400 mt-2">
+                    Processing transcript and analysis...
+                </p>
+
+                <p className="text-slate-500 mt-4 text-sm">
+                    This may take up to 30 seconds
+                </p>
+
+            </div>
+
+        );
+    }
     if (error) {
         return (
             <div className="h-screen bg-black flex flex-col items-center justify-center text-white gap-4">
@@ -64,14 +170,23 @@ const InterviewCallPage = () => {
     }
 
     return (
-        <div className="h-screen bg-black flex flex-col">
+        <div className="h-screen overflow-hidden bg-black flex flex-col">
             <div className="h-16 px-6 flex items-center justify-between border-b border-slate-800 text-white">
+
                 <h1 className="font-bold text-xl">
                     HireMe AI Interview
                 </h1>
+
+                <button
+                    onClick={endInterview}
+                    className="px-4 py-2 bg-red-600 rounded-lg"
+                >
+                    End Interview
+                </button>
+
             </div>
 
-            <div className="flex-1">
+            <div className="flex-1 overflow-hidden">
                 {tavusUrl && (
                     <iframe
                         src={tavusUrl}
