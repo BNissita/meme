@@ -3,58 +3,50 @@ import axios from 'axios';
 
 export const AuthContext = createContext();
 
-// Pre-configured Axios instance for backend communications
+// 1. Configured Axios instance to globally pass credentials (cookies)
 export const api = axios.create({
-  baseURL: 'http://localhost:5050/api'
+  baseURL: 'http://localhost:5050/api',
+  withCredentials: true 
 });
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token') || null);
+  // 2. Swapped token state for an authentication flag
+  const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Sync token and load user profile if available
+  // 3. Updated initialization effect to hit /auth/me on app mount
   useEffect(() => {
-    if (token) {
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      localStorage.setItem('token', token);
-      
-      // Load current user profile from DB
-      api.get('/auth/me')
-        .then((response) => {
-          if (response.data.success) {
-            setUser(response.data.user);
-          } else {
-            // Token invalid or expired
-            handleSessionExpiry();
-          }
-          setLoading(false);
-        })
-        .catch((error) => {
-          console.error('Profile fetch failed:', error);
-          handleSessionExpiry();
-          setLoading(false);
-        });
-    } else {
-      delete api.defaults.headers.common['Authorization'];
-      localStorage.removeItem('token');
-      setUser(null);
-      setLoading(false);
-    }
-  }, [token]);
+    api.get('/auth/me')
+      .then((response) => {
+        if (response.data.success) {
+          setUser(response.data.user);
+          setAuthenticated(true);
+        }
+      })
+      .catch((error) => {
+        console.log('No active session found:', error.message);
+        setUser(null);
+        setAuthenticated(false);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
 
+  // 4. Refactored session reset helper (8. Dropped localStorage)
   const handleSessionExpiry = () => {
-    setToken(null);
     setUser(null);
-    localStorage.removeItem('token');
+    setAuthenticated(false);
   };
 
+  // 5. Updated login logic to rely on the backend setting the cookie
   const login = async (email, password) => {
     try {
       const response = await api.post('/auth/login', { email, password });
       if (response.data.success) {
-        setToken(response.data.token);
         setUser(response.data.user);
+        setAuthenticated(true);
         return { success: true };
       }
     } catch (error) {
@@ -65,12 +57,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // 6. Updated registration logic to rely on the backend setting the cookie
   const register = async (name, email, password) => {
     try {
       const response = await api.post('/auth/register', { name, email, password });
       if (response.data.success) {
-        setToken(response.data.token);
         setUser(response.data.user);
+        setAuthenticated(true);
         return { success: true };
       }
     } catch (error) {
@@ -81,6 +74,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // 7. Clears cookie via backend endpoint before running cleanup
   const logout = async () => {
     try {
       await api.post('/auth/logout');
@@ -92,7 +86,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    // 9. Provided authenticated flag instead of the legacy token string
+    <AuthContext.Provider value={{ user, authenticated, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
