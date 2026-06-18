@@ -15,6 +15,7 @@ import MatchAnalysisPage from './pages/MatchAnalysisPage';
 import InterviewRoomPage from './pages/InterviewRoomPage';
 import ReportsPage from './pages/ReportsPage';
 import ProfilePage from './pages/ProfilePage';
+import InterviewCallPage from "./pages/InterviewCallPage";
 
 
 /*
@@ -35,6 +36,10 @@ function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route
+                path="/interview-call"
+                element={<InterviewCallPage />}
+              />
 
               {/* Protected Routes */}
               <Route

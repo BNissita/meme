@@ -11,6 +11,7 @@ const matchRoutes = require('./routes/match');
 const interviewRoutes = require('./routes/interview');
 const dashboardRoutes = require('./routes/dashboard');
 
+
 // Initialize app
 const app = express();
 
@@ -21,6 +22,7 @@ connectDB();
 app.use(cors()); // Allow all cross-origins for seamless hackathon integrations
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 app.get('/test-gemini', async (req, res) => {
   try {
     const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -57,6 +59,9 @@ app.use('/api/jd', jdRoutes);
 app.use('/api/match', matchRoutes);
 app.use('/api/interview', interviewRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+// app.use("/api/livekit", require("./routes/livekit"));
+// app.use("/api/recording", require("./routes/recording"));
+app.use("/api/tavus", require("./routes/tavus"));
 
 // Global Error Handler Middleware
 app.use((err, req, res, next) => {
