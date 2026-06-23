@@ -285,10 +285,10 @@ Final Report & Recommendations
 
 ## 👨‍💻 Team
 
-Boyapati Nissita Sree
-B Venkata Kundana
-Paladugu Sruthi
-Sammeta Sai Sri
+* Boyapati Nissita Sree
+* B Venkata Kundana
+* Paladugu Sruthi
+* Sammeta Sai Sri
 ---
 
 ## 📄 License
