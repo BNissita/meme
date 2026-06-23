@@ -15,7 +15,7 @@ The platform evaluates a candidate's readiness for a specific role by comparing 
 ### 🔐 Authentication
 
 * User Registration & Login
-* JWT-based Authentication
+* Cookie based Authentication
 * Protected Routes
 * Secure Password Storage
 
@@ -87,7 +87,7 @@ The platform evaluates a candidate's readiness for a specific role by comparing 
 
 * Node.js
 * Express.js
-* JWT Authentication
+* Cookie based Authentication
 * Multer
 * PDF-Parse
 
@@ -228,8 +228,6 @@ Create a `.env` file inside backend folder.
 PORT=5050
 
 MONGO_URI=your_mongodb_connection_string
-
-JWT_SECRET=your_jwt_secret
 
 GROQ_API_KEY=your_groq_api_key
 
