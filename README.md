@@ -100,8 +100,6 @@ The platform evaluates a candidate's readiness for a specific role by comparing 
 
 * Groq API
 * Tavus Conversational AI
-* Gemini AI
-
 ---
 
 ```bash
@@ -287,8 +285,10 @@ Final Report & Recommendations
 
 ## 👨‍💻 Team
 
-Developed as part of a MERN Stack and AI-powered interview preparation project.
-
+Boyapati Nissita Sree
+B Venkata Kundana
+Paladugu Sruthi
+Sammeta Sai Sri
 ---
 
 ## 📄 License
